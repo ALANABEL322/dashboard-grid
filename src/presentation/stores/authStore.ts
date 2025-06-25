@@ -45,6 +45,18 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
       }),
+      // Manejar la deserialización de fechas
+      onRehydrateStorage: () => (state) => {
+        if (state?.user) {
+          // Convertir las fechas de strings a Date objects si es necesario
+          if (typeof state.user.createdAt === "string") {
+            state.user.createdAt = new Date(state.user.createdAt);
+          }
+          if (typeof state.user.updatedAt === "string") {
+            state.user.updatedAt = new Date(state.user.updatedAt);
+          }
+        }
+      },
     }
   )
 );
