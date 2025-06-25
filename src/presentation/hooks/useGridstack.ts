@@ -1,107 +1,120 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { GridStack } from "gridstack";
-import type { GridStackWidget } from "gridstack";
+import { useGridStore, type GridWidgetData } from "../stores/gridStore";
 
-export interface GridWidgetData {
-  id: string;
-  title: string;
-  type: "analytics" | "revenue" | "activity" | "orders" | "stats" | "custom";
-  data: any;
-  visible: boolean;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+export type { GridWidgetData } from "../stores/gridStore";
 
-export const useGridstack = (isEditMode: boolean) => {
+export const useGridstack = (
+  isEditMode: boolean,
+  setIsEditMode?: (mode: boolean) => void
+) => {
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstance = useRef<GridStack | null>(null);
-  const [widgets, setWidgets] = useState<GridWidgetData[]>([
-    {
-      id: "widget-1",
-      title: "Analytics Overview",
-      type: "analytics",
-      data: {
-        value: "2,543",
-        label: "Total Visits",
-      },
-      visible: true,
-      x: 0,
-      y: 0,
-      w: 2,
-      h: 2,
-    },
-    {
-      id: "widget-2",
-      title: "Revenue",
-      type: "revenue",
-      data: {
-        value: "$12,847",
-        label: "This Month",
-      },
-      visible: true,
-      x: 2,
-      y: 0,
-      w: 2,
-      h: 2,
-    },
-    {
-      id: "widget-3",
-      title: "User Activity",
-      type: "activity",
-      data: {
-        percentage: 75,
-        label: "Active Users",
-      },
-      visible: true,
-      x: 4,
-      y: 0,
-      w: 2,
-      h: 2,
-    },
-    {
-      id: "widget-4",
-      title: "Recent Orders",
-      type: "orders",
-      data: {
-        orders: [
-          { id: "#1234", amount: "$299.99" },
-          { id: "#1235", amount: "$149.50" },
-        ],
-      },
-      visible: true,
-      x: 0,
-      y: 2,
-      w: 3,
-      h: 3,
-    },
-    {
-      id: "widget-5",
-      title: "Quick Stats",
-      type: "stats",
-      data: {
-        stats: [
-          { label: "New Users", value: "142" },
-          { label: "Uptime", value: "98%" },
-        ],
-      },
-      visible: true,
-      x: 3,
-      y: 2,
-      w: 3,
-      h: 3,
-    },
-  ]);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Inicializar Gridstack
+  const {
+    widgets,
+    isDragging,
+    updateWidgetPosition,
+    removeWidget: removeWidgetFromStore,
+    toggleWidgetVisibility,
+    setDragging,
+    restoreAllWidgets,
+    setWidgetPage,
+    getWidgetPage,
+    syncPositionsFromDOM,
+    saveCurrentLayout,
+  } = useGridStore();
+
+  // Verificar cuando Zustand ha terminado la hidratación
   useEffect(() => {
-    if (!gridRef.current) return;
+    // Dar un pequeño delay para asegurar que la hidratación se complete
+    const timer = setTimeout(() => {
+      console.log(
+        "[USEGRIDSTACK] Zustand hydration completed, widgets ready:",
+        widgets.map((w) => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h }))
+      );
+      setIsHydrated(true);
+    }, 100);
 
-    // Limpiar instancia anterior si existe
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Función para guardar automáticamente cuando se sale del modo edición
+  const saveAndExitEditMode = useCallback(() => {
+    if (isEditMode && setIsEditMode) {
+      setIsEditMode(false);
+    }
+  }, [isEditMode, setIsEditMode]);
+
+  // Función para configurar event listeners
+  const setupEventListeners = useCallback(
+    (grid: GridStack) => {
+      if (!isEditMode) return;
+
+      // Limpiar listeners anteriores
+      grid.off(
+        "dragstart resizestart dragstop resizestop change added removed"
+      );
+
+      console.log("[GRIDSTACK] Setting up event listeners for edit mode");
+
+      // Listener para inicio de interacción
+      grid.on("dragstart resizestart", (event: any, element: any) => {
+        const widgetId = element.getAttribute("data-gs-id");
+        if (widgetId) {
+          console.log(`[GRIDSTACK] Started ${event.type} widget: ${widgetId}`);
+          setDragging(true, widgetId);
+        }
+      });
+
+      // Listener principal para fin de interacción - SOLO dragstop y resizestop
+      grid.on("dragstop resizestop", (event: any, element: any) => {
+        console.log(`[GRIDSTACK] ${event.type} event triggered`);
+
+        if (element && typeof element.getAttribute === "function") {
+          const widgetId = element.getAttribute("data-gs-id");
+          if (widgetId) {
+            // Obtener posiciones directamente del GridStack node
+            const node = (element as any).gridstackNode;
+            if (node) {
+              console.log(`[GRIDSTACK] Widget ${widgetId} final position:`, {
+                x: node.x,
+                y: node.y,
+                w: node.w,
+                h: node.h,
+              });
+
+              // Actualizar el store con la nueva posición
+              updateWidgetPosition(widgetId, node.x, node.y, node.w, node.h);
+            }
+          }
+        }
+
+        console.log(`[GRIDSTACK] Finished ${event.type} operation`);
+        setDragging(false);
+      });
+    },
+    [isEditMode, setDragging, updateWidgetPosition]
+  );
+
+  // Inicializar GridStack solo después de la hidratación
+  useEffect(() => {
+    if (!gridRef.current || !isHydrated) {
+      console.log("[USEGRIDSTACK] Waiting for hydration or grid ref...", {
+        hasGridRef: !!gridRef.current,
+        isHydrated,
+      });
+      return;
+    }
+
+    console.log("[USEGRIDSTACK] Initializing GridStack with hydrated data...");
+
+    // Destruir instancia anterior si existe
     if (gridInstance.current) {
       try {
-        gridInstance.current.destroy(false); // No remover el DOM
+        console.log("[USEGRIDSTACK] Destroying previous GridStack instance");
+        gridInstance.current.destroy(false);
         gridInstance.current = null;
       } catch (error) {
         console.warn("Error destroying grid instance:", error);
@@ -111,44 +124,33 @@ export const useGridstack = (isEditMode: boolean) => {
 
     // Crear nueva instancia
     try {
-      gridInstance.current = GridStack.init(
-        {
-          cellHeight: 70,
-          acceptWidgets: true,
-          removable: false,
-          staticGrid: !isEditMode,
-          animate: true,
-          float: true,
-          column: 6,
-          margin: 8,
-          minRow: 1,
-          disableDrag: !isEditMode,
-          disableResize: !isEditMode,
+      const gridOptions = {
+        cellHeight: 70,
+        acceptWidgets: true,
+        removable: false,
+        staticGrid: !isEditMode,
+        animate: false,
+        float: true,
+        column: 6,
+        margin: 8,
+        minRow: 1,
+        disableDrag: !isEditMode,
+        disableResize: !isEditMode,
+        // Opciones adicionales para estabilidad
+        resizable: {
+          handles: "e, se, s, sw, w",
         },
-        gridRef.current
-      );
+      };
 
-      // Event listeners para cambios
-      if (isEditMode && gridInstance.current) {
-        gridInstance.current.on("change", (event, items) => {
-          if (items) {
-            setWidgets((prevWidgets) =>
-              prevWidgets.map((widget) => {
-                const updatedItem = items.find((item) => item.id === widget.id);
-                if (updatedItem) {
-                  return {
-                    ...widget,
-                    x: updatedItem.x || 0,
-                    y: updatedItem.y || 0,
-                    w: updatedItem.w || 1,
-                    h: updatedItem.h || 1,
-                  };
-                }
-                return widget;
-              })
-            );
-          }
-        });
+      console.log(
+        "[USEGRIDSTACK] Creating GridStack with options:",
+        gridOptions
+      );
+      gridInstance.current = GridStack.init(gridOptions, gridRef.current);
+
+      if (gridInstance.current) {
+        console.log("[USEGRIDSTACK] GridStack initialized successfully");
+        setupEventListeners(gridInstance.current);
       }
     } catch (error) {
       console.error("Error initializing GridStack:", error);
@@ -157,7 +159,8 @@ export const useGridstack = (isEditMode: boolean) => {
     return () => {
       if (gridInstance.current) {
         try {
-          gridInstance.current.destroy(false); // No remover el DOM
+          console.log("[USEGRIDSTACK] Cleanup: destroying GridStack instance");
+          gridInstance.current.destroy(false);
           gridInstance.current = null;
         } catch (error) {
           console.warn("Error in cleanup:", error);
@@ -165,95 +168,98 @@ export const useGridstack = (isEditMode: boolean) => {
         }
       }
     };
-  }, [isEditMode]);
+  }, [isEditMode, setupEventListeners, isHydrated]);
 
-  // Función para alternar visibilidad
-  const toggleWidgetVisibility = useCallback((widgetId: string) => {
-    setWidgets((prevWidgets) => {
-      const newWidgets = prevWidgets.map((widget) =>
-        widget.id === widgetId
-          ? { ...widget, visible: !widget.visible }
-          : widget
-      );
-
-      // Compactar el grid después de cambiar la visibilidad
-      setTimeout(() => {
-        if (gridInstance.current) {
-          gridInstance.current.compact();
-        }
-      }, 50);
-
-      return newWidgets;
-    });
-  }, []);
-
-  // Función para agregar nuevo widget
-  const addWidget = useCallback(() => {
-    const newWidget: GridWidgetData = {
-      id: `widget-${Date.now()}`,
-      title: "New Widget",
-      type: "custom",
-      data: { message: "This is a new widget" },
-      visible: true,
-      x: 0,
-      y: 0,
-      w: 2,
-      h: 2,
-    };
-
-    setWidgets((prev) => [...prev, newWidget]);
-  }, []);
-
-  // Función para eliminar widget
-  const removeWidget = useCallback((widgetId: string) => {
-    setWidgets((prev) => prev.filter((widget) => widget.id !== widgetId));
-  }, []);
-
-  // Función para guardar layout
-  const saveLayout = useCallback(() => {
-    setWidgets((currentWidgets) => {
-      const layout = currentWidgets.map((widget) => ({
-        id: widget.id,
-        x: widget.x,
-        y: widget.y,
-        w: widget.w,
-        h: widget.h,
-        visible: widget.visible,
-      }));
-
-      localStorage.setItem("dashboard-layout", JSON.stringify(layout));
-      console.log("Layout saved:", layout);
-      return currentWidgets; // No cambiar el estado
-    });
-  }, []);
-
-  // Función para cargar layout
-  const loadLayout = useCallback(() => {
-    const savedLayout = localStorage.getItem("dashboard-layout");
-    if (savedLayout) {
-      try {
-        const layout = JSON.parse(savedLayout);
-        setWidgets((prevWidgets) =>
-          prevWidgets.map((widget) => {
-            const savedWidget = layout.find(
-              (item: any) => item.id === widget.id
-            );
-            return savedWidget ? { ...widget, ...savedWidget } : widget;
-          })
-        );
-      } catch (error) {
-        console.error("Error loading layout:", error);
-      }
+  // Sincronizar posiciones del store con DOM
+  useEffect(() => {
+    if (
+      !gridInstance.current ||
+      !gridRef.current ||
+      !isHydrated ||
+      isDragging
+    ) {
+      console.log("[USEGRIDSTACK] Sync skipped, waiting for:", {
+        hasGridInstance: !!gridInstance.current,
+        hasGridRef: !!gridRef.current,
+        isHydrated,
+        isDragging,
+      });
+      return;
     }
-  }, []);
+
+    console.log(
+      "[USEGRIDSTACK] Syncing store data to DOM:",
+      widgets.map((w) => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h }))
+    );
+
+    const syncFrame = requestAnimationFrame(() => {
+      const grid = gridInstance.current;
+      if (!grid || isDragging) return; // Evitar sync durante drag
+
+      // Usar GridStack.update() para sincronizar posiciones
+      widgets.forEach((widget) => {
+        const element = gridRef.current?.querySelector(
+          `[data-gs-id="${widget.id}"]`
+        ) as HTMLElement;
+
+        if (element) {
+          const node = (element as any).gridstackNode;
+
+          // Verificar si necesitamos actualizar
+          const needsUpdate =
+            !node ||
+            node.x !== widget.x ||
+            node.y !== widget.y ||
+            node.w !== widget.w ||
+            node.h !== widget.h;
+
+          if (needsUpdate) {
+            console.log(`[USEGRIDSTACK] Updating GridStack for ${widget.id}:`, {
+              from: node
+                ? { x: node.x, y: node.y, w: node.w, h: node.h }
+                : "no node",
+              to: { x: widget.x, y: widget.y, w: widget.w, h: widget.h },
+            });
+
+            try {
+              // Usar GridStack.update() para mover el elemento
+              grid.update(element, {
+                x: widget.x,
+                y: widget.y,
+                w: widget.w,
+                h: widget.h,
+              });
+            } catch (error) {
+              console.warn(
+                `[USEGRIDSTACK] Error updating ${widget.id}:`,
+                error
+              );
+
+              // Fallback: actualizar atributos DOM directamente
+              element.setAttribute("data-gs-x", widget.x.toString());
+              element.setAttribute("data-gs-y", widget.y.toString());
+              element.setAttribute("data-gs-w", widget.w.toString());
+              element.setAttribute("data-gs-h", widget.h.toString());
+            }
+          }
+        }
+      });
+
+      // NO hacer commit automático para evitar eventos en cascada
+    });
+
+    return () => cancelAnimationFrame(syncFrame);
+  }, [widgets, isHydrated]); // Remover isDragging de dependencies
 
   return {
     gridRef,
     widgets,
     toggleWidgetVisibility,
-    addWidget,
-    removeWidget,
-    saveLayout,
-    loadLayout,
+    removeWidget: removeWidgetFromStore,
+    restoreAllWidgets,
+    saveAndExitEditMode,
+    isDragging,
+    syncPositionsFromDOM,
+    saveCurrentLayout,
   };
 };

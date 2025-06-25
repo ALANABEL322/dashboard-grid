@@ -1,5 +1,5 @@
-import { Home, Grid, LogOut } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Home, Users, LogOut } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -13,21 +13,30 @@ import { useAuth } from "../../hooks/useAuth";
 
 const menuItems = [
   {
-    title: "Dashboard",
+    title: "Inicio",
     url: "/dashboard",
     icon: Home,
   },
   {
-    title: "Grid",
+    title: "Clientes",
     url: "/grid",
-    icon: Grid,
+    icon: Users,
   },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: (url: string) => void;
+}
+
+export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  const handleNavigation = (url: string) => {
+    if (onNavigate) {
+      onNavigate(url);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -38,10 +47,10 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Grid className="h-4 w-4" />
+            <Users className="h-4 w-4" />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">Dashboard Grid</span>
+            <span className="truncate font-semibold">Dashboard Clientes</span>
             <span className="truncate text-xs text-muted-foreground">
               {user?.name}
             </span>
@@ -55,7 +64,7 @@ export function AppSidebar() {
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 isActive={location.pathname === item.url}
-                onClick={() => navigate(item.url)}
+                onClick={() => handleNavigation(item.url)}
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.title}</span>
