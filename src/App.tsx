@@ -6,7 +6,9 @@ import {
 } from "react-router-dom";
 import { LoginPage } from "./presentation/pages/LoginPage";
 import { DashboardPage } from "./presentation/pages/DashboardPage";
+import { GridPage } from "./presentation/pages/GridPage";
 import { ProtectedRoute } from "./presentation/components/auth/ProtectedRoute";
+import { AppLayout } from "./presentation/components/layout/AppLayout";
 import { useAuth } from "./presentation/hooks/useAuth";
 
 function App() {
@@ -29,7 +31,19 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <AppLayout>
+                <DashboardPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/grid"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <GridPage />
+              </AppLayout>
             </ProtectedRoute>
           }
         />
