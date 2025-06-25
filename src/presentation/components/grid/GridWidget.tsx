@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GridWidgetData } from "../../hooks/useGridstack";
+import { useGridStore, type GridWidgetData } from "../../stores/gridStore";
 
 interface GridWidgetProps {
   widget: GridWidgetData;
@@ -89,6 +89,37 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
   isEditMode,
   onToggleVisibility,
 }) => {
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const { isDragging, draggedWidgetId } = useGridStore();
+
+  // Efecto para sincronizar posiciones solo cuando NO se está arrastrando
+  useEffect(() => {
+    const element = widgetRef.current;
+    if (!element) return;
+
+    // Solo actualizar si no estamos en una interacción activa
+    if (!isDragging) {
+      // Verificar si realmente necesitamos actualizar
+      const currentX = element.getAttribute("data-gs-x");
+      const currentY = element.getAttribute("data-gs-y");
+      const currentW = element.getAttribute("data-gs-w");
+      const currentH = element.getAttribute("data-gs-h");
+
+      // Solo actualizar si hay diferencias reales
+      if (
+        currentX !== widget.x.toString() ||
+        currentY !== widget.y.toString() ||
+        currentW !== widget.w.toString() ||
+        currentH !== widget.h.toString()
+      ) {
+        element.setAttribute("data-gs-x", widget.x.toString());
+        element.setAttribute("data-gs-y", widget.y.toString());
+        element.setAttribute("data-gs-w", widget.w.toString());
+        element.setAttribute("data-gs-h", widget.h.toString());
+      }
+    }
+  }, [widget.x, widget.y, widget.w, widget.h, isDragging, widget.id]);
+
   // En modo vista, no renderizar widgets ocultos
   if (!widget.visible && !isEditMode) {
     return null;
@@ -96,6 +127,7 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
 
   return (
     <div
+      ref={widgetRef}
       className={`grid-stack-item ${!widget.visible ? "opacity-30" : ""}`}
       data-gs-w={widget.w}
       data-gs-h={widget.h}

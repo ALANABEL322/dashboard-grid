@@ -3,6 +3,7 @@ import { Grid, Edit3, Eye, Save, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GridWidget } from "../components/grid/GridWidget";
 import { useGridstack } from "../hooks/useGridstack";
+import { type GridWidgetData } from "../stores/gridStore";
 
 // Importar estilos de Gridstack
 import "gridstack/dist/gridstack.min.css";
@@ -17,6 +18,7 @@ export const GridPage = () => {
     removeWidget,
     saveLayout,
     loadLayout,
+    isDragging,
   } = useGridstack(isEditMode);
 
   // Cargar layout guardado al inicializar
@@ -69,6 +71,12 @@ export const GridPage = () => {
         .grid-stack-item.ui-draggable-dragging .grid-stack-item-content {
           transform: rotate(2deg);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
+        }
+
+        .grid-stack-item.ui-resizable-resizing .grid-stack-item-content {
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
         }
 
         /* Estilos para widgets ocultos */
@@ -206,7 +214,7 @@ export const GridPage = () => {
           ref={gridRef}
           className={`grid-stack ${!isEditMode ? "grid-stack-static" : ""}`}
         >
-          {widgets.map((widget) => (
+          {widgets.map((widget: GridWidgetData) => (
             <GridWidget
               key={widget.id}
               widget={widget}
