@@ -1,39 +1,117 @@
-import React, { useState, useEffect } from "react";
-import { Grid, Edit3, Eye, Save, Plus, RotateCcw } from "lucide-react";
+import React, { useEffect } from "react";
+import { Users, Edit3, Eye, Save, RefreshCw, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GridWidget } from "../components/grid/GridWidget";
 import { useGridstack } from "../hooks/useGridstack";
-import { type GridWidgetData } from "../stores/gridStore";
+import { useEditMode } from "../components/layout/AppLayout";
+import { type GridWidgetData, useGridStore } from "../stores/gridStore";
 
 // Importar estilos de Gridstack
 import "gridstack/dist/gridstack.min.css";
 
 export const GridPage = () => {
-  const [isEditMode, setIsEditMode] = useState(false);
+  const { isEditMode, setIsEditMode } = useEditMode();
   const {
     gridRef,
     widgets,
     toggleWidgetVisibility,
-    addWidget,
     removeWidget,
-    saveLayout,
-    loadLayout,
+    restoreAllWidgets,
     isDragging,
-  } = useGridstack(isEditMode);
+    syncPositionsFromDOM,
+    saveCurrentLayout,
+  } = useGridstack(isEditMode, setIsEditMode);
 
-  // Cargar layout guardado al inicializar
+  // Verificar el estado inicial al montar el componente
   useEffect(() => {
-    loadLayout();
-  }, [loadLayout]);
+    console.log("[GRIDPAGE] Component mounted, checking initial state...");
+    const currentWidgets = widgets.map((w) => ({
+      id: w.id,
+      x: w.x,
+      y: w.y,
+      w: w.w,
+      h: w.h,
+      visible: w.visible,
+    }));
+    console.log("[GRIDPAGE] Current widgets from store:", currentWidgets);
+
+    // Mostrar posiciones exactas
+    currentWidgets.forEach((w) => {
+      console.log(
+        `[GRIDPAGE] ${w.id}: (${w.x},${w.y},${w.w},${w.h},${w.visible})`
+      );
+    });
+
+    // Verificar localStorage
+    const stored = localStorage.getItem("grid-storage");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const storedWidgets = parsed.state?.widgets?.map((w: any) => ({
+          id: w.id,
+          x: w.x,
+          y: w.y,
+          w: w.w,
+          h: w.h,
+          visible: w.visible,
+        }));
+        console.log("[GRIDPAGE] Data in localStorage:", storedWidgets);
+
+        // Mostrar posiciones exactas del localStorage
+        storedWidgets?.forEach((w: any) => {
+          console.log(
+            `[GRIDPAGE] localStorage ${w.id}: (${w.x},${w.y},${w.w},${w.h},${w.visible})`
+          );
+        });
+      } catch (error) {
+        console.log("[GRIDPAGE] Error reading localStorage:", error);
+      }
+    } else {
+      console.log("[GRIDPAGE] No data found in localStorage");
+    }
+  }, []);
 
   const handleToggleEditMode = () => {
     setIsEditMode(!isEditMode);
   };
 
   const handleSaveLayout = () => {
-    saveLayout();
-    // Mostrar mensaje de éxito (puedes implementar un toast aquí)
-    alert("Layout guardado exitosamente!");
+    console.log("[UI] Manual save button clicked");
+    console.log(
+      "[UI] Current widget positions before save:",
+      widgets.map((w) => ({
+        id: w.id,
+        x: w.x,
+        y: w.y,
+        w: w.w,
+        h: w.h,
+        visible: w.visible,
+      }))
+    );
+
+    // Capturar posiciones actuales del DOM y guardar
+    saveCurrentLayout();
+
+    // Salir del modo edición
+    setIsEditMode(false);
+    alert("Layout guardado correctamente! Cambiando a modo vista.");
+  };
+
+  const handleClearStorage = () => {
+    if (
+      window.confirm(
+        "¿Estás seguro de que quieres limpiar completamente el almacenamiento? Esto reiniciará todo a valores por defecto."
+      )
+    ) {
+      // Limpiar localStorage
+      localStorage.removeItem("grid-storage");
+
+      // Restaurar widgets
+      restoreAllWidgets();
+
+      // Recargar la página para reiniciar completamente
+      window.location.reload();
+    }
   };
 
   const visibleWidgetsCount = widgets.filter((w) => w.visible).length;
@@ -105,11 +183,11 @@ export const GridPage = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Grid className="h-8 w-8" />
+            <Users className="h-8 w-8" />
             <div>
-              <h1 className="text-3xl font-bold">Grid Dashboard</h1>
+              <h1 className="text-3xl font-bold">Dashboard de Clientes</h1>
               <p className="text-gray-600 mt-1">
-                Gestiona tu dashboard interactivo
+                Gestiona la información de tus clientes
               </p>
             </div>
           </div>
@@ -152,7 +230,8 @@ export const GridPage = () => {
                   Modo Edición Activo
                 </span>
                 <span className="text-sm text-blue-600">
-                  Arrastra, redimensiona y gestiona tus widgets
+                  Arrastra, redimensiona y gestiona la visibilidad. Los cambios
+                  se guardan automáticamente.
                 </span>
               </div>
 
@@ -160,21 +239,11 @@ export const GridPage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={addWidget}
+                  onClick={restoreAllWidgets}
                   className="flex items-center gap-1"
                 >
-                  <Plus className="h-3 w-3" />
-                  Agregar Widget
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={loadLayout}
-                  className="flex items-center gap-1"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Cargar
+                  <RefreshCw className="h-3 w-3" />
+                  Restaurar Widgets
                 </Button>
 
                 <Button
@@ -185,6 +254,16 @@ export const GridPage = () => {
                 >
                   <Save className="h-3 w-3" />
                   Guardar Layout
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearStorage}
+                  className="flex items-center gap-1"
+                >
+                  <Trash className="h-3 w-3" />
+                  Limpiar Almacenamiento
                 </Button>
               </div>
             </div>
@@ -197,12 +276,13 @@ export const GridPage = () => {
             <p>
               🔧 <strong>Modo Edición:</strong> Arrastra los widgets para
               reordenarlos, redimensiona desde las esquinas, y usa el ícono 👁️
-              para mostrar/ocultar elementos.
+              para mostrar/ocultar elementos. Los cambios se guardan
+              automáticamente.
             </p>
           ) : (
             <p>
               👀 <strong>Modo Vista:</strong> Los widgets están estáticos y
-              optimizados para visualización.
+              optimizados para visualización de datos de clientes.
             </p>
           )}
         </div>
@@ -220,6 +300,7 @@ export const GridPage = () => {
               widget={widget}
               isEditMode={isEditMode}
               onToggleVisibility={toggleWidgetVisibility}
+              onRemoveWidget={removeWidget}
             />
           ))}
         </div>
