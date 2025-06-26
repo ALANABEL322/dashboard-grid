@@ -7,8 +7,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+} from "@/shared/components/ui/sidebar";
+import { Button } from "@/shared/components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
 
 const menuItems = [

@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState } from "react";
 import { Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import {
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/shared/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useGridStore } from "../../stores/gridStore";
+import { ProjectAlerts } from "@/shared/utils/sweetAlert";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-// Contexto para manejar el estado del modo edición globalmente
 interface EditModeContextType {
   isEditMode: boolean;
   setIsEditMode: (mode: boolean) => void;
@@ -31,11 +33,10 @@ export const useEditMode = () => {
 export function AppLayout({ children }: AppLayoutProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const navigate = useNavigate();
-  const { saveLayout } = useGridStore();
+  const { saveCurrentLayout } = useGridStore();
 
-  const handleNavigation = (url: string) => {
+  const handleNavigation = async (url: string) => {
     if (isEditMode) {
-      // Si está en modo edición, sincronizar y guardar layout
       const gridElements = document.querySelectorAll(".grid-stack-item");
       const positionUpdates: {
         [id: string]: { x: number; y: number; w: number; h: number };
@@ -52,23 +53,17 @@ export function AppLayout({ children }: AppLayoutProps) {
         }
       });
 
-      // Guardar con las posiciones actualizadas
-      saveLayout();
+      saveCurrentLayout();
       setIsEditMode(false);
 
-      // Mostrar mensaje de confirmación
-      const confirmed = window.confirm(
-        "Has salido del modo edición y se ha guardado el layout automáticamente. ¿Deseas continuar con la navegación?"
-      );
+      const result = await ProjectAlerts.navigationConfirm();
 
-      if (confirmed) {
+      if (result.isConfirmed) {
         navigate(url);
       } else {
-        // Si cancela, volver al modo edición
         setIsEditMode(true);
       }
     } else {
-      // Navegación normal
       navigate(url);
     }
   };
@@ -80,7 +75,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           <AppSidebar onNavigate={handleNavigation} />
 
           <main className="flex-1 flex flex-col overflow-hidden">
-            {/* Header con botón hamburguesa para mobile */}
             <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:hidden">
               <SidebarTrigger className="flex items-center justify-center h-10 w-10 rounded-md hover:bg-accent">
                 <Menu className="h-5 w-5" />
@@ -96,7 +90,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               )}
             </header>
 
-            {/* Contenido principal */}
             <div className="flex-1 overflow-auto bg-gray-50">{children}</div>
           </main>
         </div>

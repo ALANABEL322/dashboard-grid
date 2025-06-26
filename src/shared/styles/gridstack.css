@@ -1,0 +1,80 @@
+/* GridStack Custom Styles */
+@layer components {
+  .grid-stack {
+    @apply bg-gray-50 min-h-[500px] rounded-lg p-4;
+  }
+
+  .grid-stack-static .grid-stack-item {
+    @apply cursor-default;
+  }
+
+  .grid-stack-static .grid-stack-item .ui-resizable-handle {
+    @apply hidden;
+  }
+
+  .grid-stack-item-content {
+    @apply rounded-lg transition-all duration-200 ease-in-out;
+  }
+
+  .grid-stack-item-content:hover {
+    @apply -translate-y-0.5 shadow-lg;
+  }
+
+  .grid-stack-item.ui-draggable-dragging .grid-stack-item-content {
+    @apply rotate-1 shadow-xl z-[1000];
+  }
+
+  .grid-stack-item.ui-resizable-resizing .grid-stack-item-content {
+    @apply shadow-xl z-[1000];
+  }
+
+  /* Widget visibility states */
+  .grid-stack-item.opacity-30 {
+    @apply opacity-30 transition-opacity duration-300;
+  }
+
+  .grid-stack-item.opacity-30 .grid-stack-item-content {
+    @apply border-dashed bg-gray-50;
+  }
+
+  /* Widget animations */
+  .grid-stack-item {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Eye button styling */
+  .grid-stack-item .eye-button {
+    @apply backdrop-blur-sm border border-white/20;
+  }
+}
+
+/* Widget type specific styles */
+@layer components {
+  .widget-stats-grid {
+    @apply grid grid-cols-2 gap-4;
+  }
+
+  .widget-stat-item {
+    @apply text-center;
+  }
+
+  .widget-stat-value {
+    @apply text-2xl font-bold;
+  }
+
+  .widget-stat-label {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .widget-activity-item {
+    @apply flex justify-between items-start border-b border-gray-100 pb-2;
+  }
+
+  .widget-progress-bar {
+    @apply w-full bg-gray-200 rounded-full h-2;
+  }
+
+  .widget-progress-fill {
+    @apply h-2 rounded-full bg-blue-600;
+  }
+}

@@ -8,7 +8,6 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   setUser: (user: User, token: string) => void;
   clearUser: () => void;
   setLoading: (loading: boolean) => void;
@@ -45,10 +44,8 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
       }),
-      // Manejar la deserialización de fechas
       onRehydrateStorage: () => (state) => {
         if (state?.user) {
-          // Convertir las fechas de strings a Date objects si es necesario
           if (typeof state.user.createdAt === "string") {
             state.user.createdAt = new Date(state.user.createdAt);
           }
