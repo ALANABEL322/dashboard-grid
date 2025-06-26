@@ -1,7 +1,6 @@
 import { User, CreateUserDto, LoginCredentials } from '../../domain/entities/User';
 import { UserRepository } from '../../domain/repositories/UserRepository';
 
-// Datos mockeados
 const mockUsers: User[] = [
   {
     id: '1',
@@ -21,7 +20,6 @@ const mockUsers: User[] = [
   }
 ];
 
-// Mock passwords (en producción estarían hasheadas)
 const mockPasswords: Record<string, string> = {
   'admin@example.com': 'admin123',
   'john.doe@example.com': 'password123'
@@ -29,7 +27,6 @@ const mockPasswords: Record<string, string> = {
 
 export class MockUserRepository implements UserRepository {
   async findByEmail(email: string): Promise<User | null> {
-    // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const user = mockUsers.find(u => u.email === email);
@@ -37,7 +34,6 @@ export class MockUserRepository implements UserRepository {
   }
 
   async create(userData: CreateUserDto): Promise<User> {
-    // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 200));
     
     const newUser: User = {
@@ -56,7 +52,6 @@ export class MockUserRepository implements UserRepository {
   }
 
   async authenticate(credentials: LoginCredentials): Promise<User | null> {
-    // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 300));
     
     const user = await this.findByEmail(credentials.email);

@@ -25,7 +25,6 @@ interface GridState {
   draggedWidgetId: string | null;
   widgetPagination: { [widgetId: string]: number };
 
-  // Actions
   setWidgets: (widgets: GridWidgetData[]) => void;
   updateWidget: (id: string, updates: Partial<GridWidgetData>) => void;
   updateWidgetPosition: (
@@ -508,7 +507,6 @@ const initialWidgets: GridWidgetData[] = [
   },
 ];
 
-// Logging para verificar el estado inicial
 console.log(
   "[STORE] Initializing store with initial widgets:",
   initialWidgets.map((w) => ({
@@ -553,7 +551,6 @@ export const useGridStore = create<GridState>()(
           ),
         }));
 
-        // Verificar que se guardó en localStorage después de un delay
         setTimeout(() => {
           const stored = localStorage.getItem("grid-storage");
           if (stored) {
@@ -678,10 +675,8 @@ export const useGridStore = create<GridState>()(
       saveCurrentLayout: () => {
         console.log("[STORE] saveCurrentLayout - Manual save triggered");
 
-        // Primero sincronizar desde DOM
         get().syncPositionsFromDOM();
 
-        // Mostrar estado final
         const finalState = get();
         console.log(
           "[STORE] Final layout to be persisted:",
@@ -720,7 +715,6 @@ export const useGridStore = create<GridState>()(
               }));
               console.log("[PERSIST] Loaded widgets:", loadedWidgets);
 
-              // Verificar si hay cambios
               const hasChanges = loadedWidgets?.some((loaded) => {
                 const initial = initialWidgets.find(
                   (init) => init.id === loaded.id

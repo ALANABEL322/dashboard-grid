@@ -1,12 +1,12 @@
 import React, { useEffect } from "react";
 import { Users, Edit3, Eye, Save, RefreshCw, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui";
 import { GridWidget } from "../components/grid/GridWidget";
 import { useGridstack } from "../hooks/useGridstack";
 import { useEditMode } from "../components/layout/AppLayout";
-import { type GridWidgetData, useGridStore } from "../stores/gridStore";
+import { type GridWidgetData } from "../stores/gridStore";
+import { ProjectAlerts } from "@/shared/utils/sweetAlert";
 
-// Importar estilos de Gridstack
 import "gridstack/dist/gridstack.min.css";
 
 export const GridPage = () => {
@@ -22,7 +22,6 @@ export const GridPage = () => {
     saveCurrentLayout,
   } = useGridstack(isEditMode, setIsEditMode);
 
-  // Verificar el estado inicial al montar el componente
   useEffect(() => {
     console.log("[GRIDPAGE] Component mounted, checking initial state...");
     const currentWidgets = widgets.map((w) => ({
@@ -35,14 +34,12 @@ export const GridPage = () => {
     }));
     console.log("[GRIDPAGE] Current widgets from store:", currentWidgets);
 
-    // Mostrar posiciones exactas
     currentWidgets.forEach((w) => {
       console.log(
         `[GRIDPAGE] ${w.id}: (${w.x},${w.y},${w.w},${w.h},${w.visible})`
       );
     });
 
-    // Verificar localStorage
     const stored = localStorage.getItem("grid-storage");
     if (stored) {
       try {
@@ -57,7 +54,6 @@ export const GridPage = () => {
         }));
         console.log("[GRIDPAGE] Data in localStorage:", storedWidgets);
 
-        // Mostrar posiciones exactas del localStorage
         storedWidgets?.forEach((w: any) => {
           console.log(
             `[GRIDPAGE] localStorage ${w.id}: (${w.x},${w.y},${w.w},${w.h},${w.visible})`
@@ -89,27 +85,20 @@ export const GridPage = () => {
       }))
     );
 
-    // Capturar posiciones actuales del DOM y guardar
     saveCurrentLayout();
-
-    // Salir del modo edición
     setIsEditMode(false);
-    alert("Layout guardado correctamente! Cambiando a modo vista.");
+
+    ProjectAlerts.layoutSaved();
   };
 
-  const handleClearStorage = () => {
-    if (
-      window.confirm(
-        "¿Estás seguro de que quieres limpiar completamente el almacenamiento? Esto reiniciará todo a valores por defecto."
-      )
-    ) {
-      // Limpiar localStorage
-      localStorage.removeItem("grid-storage");
+  const handleClearStorage = async () => {
+    const result = await ProjectAlerts.clearStorageConfirm();
 
-      // Restaurar widgets
+    if (result.isConfirmed) {
+      localStorage.removeItem("grid-storage");
       restoreAllWidgets();
 
-      // Recargar la página para reiniciar completamente
+      await ProjectAlerts.storageCleared();
       window.location.reload();
     }
   };
@@ -119,7 +108,6 @@ export const GridPage = () => {
 
   return (
     <div className="p-6 h-full">
-      {/* Estilos CSS */}
       <style>{`
         .grid-stack {
           background: #f8f9fa;
@@ -179,7 +167,6 @@ export const GridPage = () => {
         }
       `}</style>
 
-      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -192,7 +179,6 @@ export const GridPage = () => {
             </div>
           </div>
 
-          {/* Switch de modo */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>
@@ -220,7 +206,6 @@ export const GridPage = () => {
           </div>
         </div>
 
-        {/* Controles de edición */}
         {isEditMode && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
@@ -270,7 +255,6 @@ export const GridPage = () => {
           </div>
         )}
 
-        {/* Instrucciones */}
         <div className="text-sm text-gray-500">
           {isEditMode ? (
             <p>
@@ -288,7 +272,6 @@ export const GridPage = () => {
         </div>
       </div>
 
-      {/* Grid Container */}
       <div className="grid-container">
         <div
           ref={gridRef}

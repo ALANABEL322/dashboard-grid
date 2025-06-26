@@ -26,9 +26,7 @@ export const useGridstack = (
     saveCurrentLayout,
   } = useGridStore();
 
-  // Verificar cuando Zustand ha terminado la hidratación
   useEffect(() => {
-    // Dar un pequeño delay para asegurar que la hidratación se complete
     const timer = setTimeout(() => {
       console.log(
         "[USEGRIDSTACK] Zustand hydration completed, widgets ready:",
@@ -40,26 +38,22 @@ export const useGridstack = (
     return () => clearTimeout(timer);
   }, []);
 
-  // Función para guardar automáticamente cuando se sale del modo edición
   const saveAndExitEditMode = useCallback(() => {
     if (isEditMode && setIsEditMode) {
       setIsEditMode(false);
     }
   }, [isEditMode, setIsEditMode]);
 
-  // Función para configurar event listeners
   const setupEventListeners = useCallback(
     (grid: GridStack) => {
       if (!isEditMode) return;
 
-      // Limpiar listeners anteriores
       grid.off(
         "dragstart resizestart dragstop resizestop change added removed"
       );
 
       console.log("[GRIDSTACK] Setting up event listeners for edit mode");
 
-      // Listener para inicio de interacción
       grid.on("dragstart resizestart", (event: any, element: any) => {
         const widgetId = element.getAttribute("data-gs-id");
         if (widgetId) {
@@ -68,14 +62,12 @@ export const useGridstack = (
         }
       });
 
-      // Listener principal para fin de interacción - SOLO dragstop y resizestop
       grid.on("dragstop resizestop", (event: any, element: any) => {
         console.log(`[GRIDSTACK] ${event.type} event triggered`);
 
         if (element && typeof element.getAttribute === "function") {
           const widgetId = element.getAttribute("data-gs-id");
           if (widgetId) {
-            // Obtener posiciones directamente del GridStack node
             const node = (element as any).gridstackNode;
             if (node) {
               console.log(`[GRIDSTACK] Widget ${widgetId} final position:`, {
@@ -85,7 +77,6 @@ export const useGridstack = (
                 h: node.h,
               });
 
-              // Actualizar el store con la nueva posición
               updateWidgetPosition(widgetId, node.x, node.y, node.w, node.h);
             }
           }
@@ -98,7 +89,6 @@ export const useGridstack = (
     [isEditMode, setDragging, updateWidgetPosition]
   );
 
-  // Inicializar GridStack solo después de la hidratación
   useEffect(() => {
     if (!gridRef.current || !isHydrated) {
       console.log("[USEGRIDSTACK] Waiting for hydration or grid ref...", {
@@ -110,7 +100,6 @@ export const useGridstack = (
 
     console.log("[USEGRIDSTACK] Initializing GridStack with hydrated data...");
 
-    // Destruir instancia anterior si existe
     if (gridInstance.current) {
       try {
         console.log("[USEGRIDSTACK] Destroying previous GridStack instance");
@@ -122,7 +111,6 @@ export const useGridstack = (
       }
     }
 
-    // Crear nueva instancia
     try {
       const gridOptions = {
         cellHeight: 70,
@@ -136,9 +124,8 @@ export const useGridstack = (
         minRow: 1,
         disableDrag: !isEditMode,
         disableResize: !isEditMode,
-        // Opciones adicionales para estabilidad
         resizable: {
-          handles: "e, se, s, sw, w",
+          handles: "se",
         },
       };
 
@@ -170,7 +157,6 @@ export const useGridstack = (
     };
   }, [isEditMode, setupEventListeners, isHydrated]);
 
-  // Sincronizar posiciones del store con DOM
   useEffect(() => {
     if (
       !gridInstance.current ||
@@ -194,9 +180,8 @@ export const useGridstack = (
 
     const syncFrame = requestAnimationFrame(() => {
       const grid = gridInstance.current;
-      if (!grid || isDragging) return; // Evitar sync durante drag
+      if (!grid || isDragging) return;
 
-      // Usar GridStack.update() para sincronizar posiciones
       widgets.forEach((widget) => {
         const element = gridRef.current?.querySelector(
           `[data-gs-id="${widget.id}"]`
@@ -205,7 +190,6 @@ export const useGridstack = (
         if (element) {
           const node = (element as any).gridstackNode;
 
-          // Verificar si necesitamos actualizar
           const needsUpdate =
             !node ||
             node.x !== widget.x ||
@@ -222,7 +206,6 @@ export const useGridstack = (
             });
 
             try {
-              // Usar GridStack.update() para mover el elemento
               grid.update(element, {
                 x: widget.x,
                 y: widget.y,
@@ -235,7 +218,6 @@ export const useGridstack = (
                 error
               );
 
-              // Fallback: actualizar atributos DOM directamente
               element.setAttribute("data-gs-x", widget.x.toString());
               element.setAttribute("data-gs-y", widget.y.toString());
               element.setAttribute("data-gs-w", widget.w.toString());
@@ -244,12 +226,10 @@ export const useGridstack = (
           }
         }
       });
-
-      // NO hacer commit automático para evitar eventos en cascada
     });
 
     return () => cancelAnimationFrame(syncFrame);
-  }, [widgets, isHydrated]); // Remover isDragging de dependencies
+  }, [widgets, isHydrated]);
 
   return {
     gridRef,
