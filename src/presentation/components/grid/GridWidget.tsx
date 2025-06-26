@@ -1,7 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Button } from "@/shared/components/ui";
 import { useGridStore, type GridWidgetData } from "../../stores/gridStore";
+import {
+  UserStatsWidget,
+  UserTableWidget,
+  UserActivityWidget,
+  UserGrowthWidget,
+  UserLocationsWidget,
+  CustomWidget,
+} from "./widgets";
 
 interface GridWidgetProps {
   widget: GridWidgetData;
@@ -11,212 +19,37 @@ interface GridWidgetProps {
 }
 
 const WidgetContent: React.FC<{ widget: GridWidgetData }> = ({ widget }) => {
-  // Obtener el estado del paginado desde el store en lugar de estado local
   const { setWidgetPage, getWidgetPage } = useGridStore();
   const currentPage = getWidgetPage(widget.id);
-  const itemsPerPage = 5; // Mostrar 5 usuarios por página
 
   switch (widget.type) {
     case "user-table":
-      const users = widget.data.users;
-      const totalPages = Math.ceil(users.length / itemsPerPage);
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const currentUsers = users.slice(startIndex, endIndex);
-
-      const handlePrevPage = () => {
-        const newPage = Math.max(currentPage - 1, 1);
-        setWidgetPage(widget.id, newPage);
-      };
-
-      const handleNextPage = () => {
-        const newPage = Math.min(currentPage + 1, totalPages);
-        setWidgetPage(widget.id, newPage);
-      };
-
       return (
-        <div className="w-full">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2 font-medium">Nombre</th>
-                  <th className="text-left p-2 font-medium">Email</th>
-                  <th className="text-left p-2 font-medium">Plan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentUsers.map((user: any) => (
-                  <tr key={user.id} className="border-b border-gray-100">
-                    <td className="p-2">{user.name}</td>
-                    <td className="p-2 text-gray-600">{user.email}</td>
-                    <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          user.type === "VIP"
-                            ? "bg-purple-100 text-purple-800"
-                            : user.type === "Premium"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {user.type}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Controles de paginado */}
-          <div className="flex items-center justify-between mt-4 px-2">
-            <div className="text-xs text-gray-500">
-              Mostrando {startIndex + 1}-{Math.min(endIndex, users.length)} de{" "}
-              {users.length} clientes
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="h-7 w-7 p-0"
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-
-              <span className="text-xs text-gray-600 px-2">
-                {currentPage} de {totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="h-7 w-7 p-0"
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <UserTableWidget
+          data={widget.data as any}
+          currentPage={currentPage}
+          onPageChange={(page) => setWidgetPage(widget.id, page)}
+        />
       );
 
     case "user-stats":
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">
-              {widget.data.totalUsers.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-500">Total Clientes</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">
-              {widget.data.activeUsers.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-500">Activos</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">
-              {widget.data.newUsersToday}
-            </p>
-            <p className="text-sm text-gray-500">Nuevos Hoy</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-orange-600">
-              {widget.data.adminUsers}
-            </p>
-            <p className="text-sm text-gray-500">VIP</p>
-          </div>
-        </div>
-      );
+      return <UserStatsWidget data={widget.data as any} />;
 
     case "user-activity":
-      return (
-        <div className="space-y-3">
-          {widget.data.activities.map((activity: any, index: number) => (
-            <div
-              key={index}
-              className="flex justify-between items-start border-b border-gray-100 pb-2"
-            >
-              <div className="flex-1">
-                <p className="font-medium text-sm">{activity.user}</p>
-                <p className="text-xs text-gray-600">{activity.action}</p>
-              </div>
-              <span className="text-xs text-gray-500">{activity.time}</span>
-            </div>
-          ))}
-        </div>
-      );
+      return <UserActivityWidget data={widget.data as any} />;
 
     case "user-growth":
-      return (
-        <div>
-          <div className="mb-4">
-            <p className="text-2xl font-bold text-green-600">
-              +{widget.data.percentage}%
-            </p>
-            <p className="text-sm text-gray-500">Crecimiento mensual</p>
-          </div>
-          <div className="space-y-2">
-            {widget.data.monthly.slice(-3).map((month: any, index: number) => (
-              <div key={index} className="flex justify-between items-center">
-                <span className="text-sm">{month.month}</span>
-                <span className="font-medium text-sm">
-                  {month.users} clientes
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
+      return <UserGrowthWidget data={widget.data as any} />;
 
     case "user-locations":
-      return (
-        <div className="space-y-3">
-          {widget.data.locations.map((location: any, index: number) => (
-            <div key={index} className="flex justify-between items-center">
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">
-                    {location.country}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {location.percentage}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${location.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-              <span className="ml-3 text-sm font-medium text-gray-600">
-                {location.users}
-              </span>
-            </div>
-          ))}
-        </div>
-      );
+      return <UserLocationsWidget data={widget.data as any} />;
 
     case "custom":
     default:
-      return (
-        <div>
-          <p className="text-gray-600">
-            {widget.data.message || "Custom widget content"}
-          </p>
-        </div>
-      );
+      return <CustomWidget data={widget.data as any} />;
   }
 };
 
-// Modal de confirmación para eliminar widget
 const DeleteConfirmModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -275,7 +108,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
   const { isDragging } = useGridStore();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Función para obtener el número del widget basado en su ID
   const getWidgetNumber = (widgetId: string) => {
     const widgetNumbers: { [key: string]: number } = {
       "widget-1": 1,
@@ -301,12 +133,10 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
     setShowDeleteModal(false);
   };
 
-  // Sincronizar atributos del DOM con el store
   useEffect(() => {
     const element = widgetRef.current;
     if (!element) return;
 
-    // Actualizar atributos si hay cambios
     const currentX = element.getAttribute("data-gs-x");
     const currentY = element.getAttribute("data-gs-y");
     const currentW = element.getAttribute("data-gs-w");
@@ -325,7 +155,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
     }
   }, [widget.x, widget.y, widget.w, widget.h]);
 
-  // En modo vista, no renderizar widgets ocultos
   if (!widget.visible && !isEditMode) {
     return null;
   }
@@ -349,7 +178,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
             !widget.visible ? "border-dashed border-gray-400 bg-gray-50" : ""
           }`}
         >
-          {/* Botón de visibilidad en modo edición */}
           {isEditMode && (
             <Button
               variant="ghost"
@@ -359,7 +187,7 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
                   ? "bg-white/80 hover:bg-white text-gray-700"
                   : "bg-red-100/80 hover:bg-red-200 text-red-600"
               }`}
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 onToggleVisibility(widget.id);
               }}
@@ -373,7 +201,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
             </Button>
           )}
 
-          {/* Botón de eliminar en modo edición */}
           {isEditMode && (
             <Button
               variant="ghost"
@@ -386,7 +213,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
             </Button>
           )}
 
-          {/* Overlay para widgets ocultos */}
           {!widget.visible && isEditMode && (
             <div className="absolute inset-0 bg-gray-200/50 flex items-center justify-center z-5">
               <div className="text-gray-500 text-sm font-medium">
@@ -395,7 +221,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
             </div>
           )}
 
-          {/* Contenido del widget */}
           <div
             className={`p-4 ${
               !widget.visible && isEditMode ? "opacity-50" : ""
@@ -409,7 +234,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
             </div>
           </div>
 
-          {/* Indicador de modo edición con número de widget */}
           {isEditMode && (
             <div className="absolute bottom-2 left-2 flex items-center gap-2">
               <div className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
@@ -423,7 +247,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
         </div>
       </div>
 
-      {/* Modal de confirmación de eliminación */}
       <DeleteConfirmModal
         isOpen={showDeleteModal}
         onClose={handleCancelDelete}

@@ -9,7 +9,6 @@ export class AuthService {
   }
 
   async getCurrentUser(token: string): Promise<User | null> {
-    // En un caso real, aquí decodificarías el JWT
     const email = this.decodeToken(token);
     if (!email) return null;
     
@@ -17,7 +16,6 @@ export class AuthService {
   }
 
   private decodeToken(token: string): string | null {
-    // Mock implementation - en producción usarías una librería JWT
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.email;
@@ -27,7 +25,6 @@ export class AuthService {
   }
 
   generateToken(user: User): string {
-    // Mock implementation - en producción usarías una librería JWT
     const payload = { email: user.email, id: user.id };
     return btoa(JSON.stringify(payload));
   }
