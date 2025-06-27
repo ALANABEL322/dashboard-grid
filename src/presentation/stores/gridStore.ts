@@ -1,23 +1,10 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import type {
-  GridWidgetData,
-  GridStore,
-  StoredGridData,
-  UserTableData,
-  UserStatsData,
-  UserActivityData,
-  UserGrowthData,
-  UserLocationsData,
-  CustomWidgetData,
-} from "@/shared/types/widget.types";
+import { persist } from "zustand/middleware";
+import type { GridWidgetData } from "@/shared/types/widget.types";
 import { logger, validators } from "@/shared/utils/utils";
-import { WIDGET_CONFIG } from "@/shared/constants/widget.constants";
 
-// Re-export for compatibility
 export type { GridWidgetData } from "@/shared/types/widget.types";
 
-// Mock data mejorado con tipos específicos
 const mockUsers = [
   { id: 1, name: "Ana García", email: "ana@empresa.com", type: "VIP" as const },
   {
@@ -168,7 +155,6 @@ interface GridState {
     w: number,
     h: number
   ) => void;
-  removeWidget: (id: string) => void;
   toggleWidgetVisibility: (id: string) => void;
   setDragging: (isDragging: boolean, widgetId?: string) => void;
   restoreAllWidgets: () => void;
@@ -526,17 +512,9 @@ export const useGridStore = create<GridState>()(
         }, 100);
       },
 
-      removeWidget: (id) => {
-        console.log(`[STORE] removeWidget - ID: ${id}`);
-        set((state) => ({
-          widgets: state.widgets.filter((widget) => widget.id !== id),
-        }));
-      },
-
       toggleWidgetVisibility: (id) => {
         logger.log("STORE", `toggleWidgetVisibility - ID: ${id}`);
 
-        // First, sync current positions from DOM to ensure we save the latest position
         const state = get();
         const widget = state.widgets.find((w) => w.id === id);
 
@@ -546,7 +524,6 @@ export const useGridStore = create<GridState>()(
         }
 
         if (widget.visible) {
-          // Widget is about to be hidden, sync its current position from DOM first
           logger.log(
             "STORE",
             `Widget ${id} is being hidden, syncing position first`
@@ -555,7 +532,6 @@ export const useGridStore = create<GridState>()(
           if (typeof document !== "undefined") {
             const element = document.querySelector(`[data-gs-id="${id}"]`);
             if (element) {
-              // Priorizar gridstackNode sobre atributos DOM
               const node = (element as any).gridstackNode;
               let x, y, w, h;
 
@@ -574,7 +550,6 @@ export const useGridStore = create<GridState>()(
                   h,
                 });
               } else {
-                // Fallback a atributos DOM
                 const xAttr = element.getAttribute("data-gs-x");
                 const yAttr = element.getAttribute("data-gs-y");
                 const wAttr = element.getAttribute("data-gs-w");
@@ -607,7 +582,6 @@ export const useGridStore = create<GridState>()(
                   }
                 );
 
-                // Update position and visibility in one go
                 set((state) => ({
                   widgets: state.widgets.map((widget) =>
                     widget.id === id
@@ -620,25 +594,22 @@ export const useGridStore = create<GridState>()(
             }
           }
         } else {
-          // Widget is about to be shown - FORZAR SINCRONIZACIÓN DESDE STORE
           logger.log(
             "STORE",
             `Widget ${id} is being shown, forcing position from store`
           );
 
-          // Cuando se muestra un widget, usar la posición guardada en el store
           set((state) => ({
             widgets: state.widgets.map((w) =>
               w.id === id ? { ...w, visible: true } : w
             ),
           }));
 
-          // Forzar actualización de GridStack después de mostrar
           setTimeout(() => {
             if (typeof document !== "undefined") {
               const element = document.querySelector(`[data-gs-id="${id}"]`);
               if (element) {
-                const grid = (window as any).gridInstance; // Acceso global temporal
+                const grid = (window as any).gridInstance;
                 if (grid) {
                   try {
                     grid.update(element, {
@@ -667,7 +638,6 @@ export const useGridStore = create<GridState>()(
           return;
         }
 
-        // Default behavior: just toggle visibility
         set((state) => ({
           widgets: state.widgets.map((widget) =>
             widget.id === id ? { ...widget, visible: !widget.visible } : widget
@@ -689,7 +659,7 @@ export const useGridStore = create<GridState>()(
         set((state) => ({
           widgets: state.widgets.map((widget) => ({
             ...widget,
-            visible: true, // Only restore visibility, keep saved positions and sizes
+            visible: true,
           })),
         }));
       },
@@ -720,7 +690,6 @@ export const useGridStore = create<GridState>()(
       syncPositionsFromDOM: () => {
         console.log("[STORE] syncPositionsFromDOM - Starting sync from DOM");
 
-        // Validate DOM is ready
         if (typeof document === "undefined") {
           console.warn("[STORE] DOM not available for sync");
           return;
@@ -738,7 +707,6 @@ export const useGridStore = create<GridState>()(
         gridElements.forEach((element) => {
           const widgetId = element.getAttribute("data-gs-id");
           if (widgetId) {
-            // Safe parsing with validation
             const xAttr = element.getAttribute("data-gs-x");
             const yAttr = element.getAttribute("data-gs-y");
             const wAttr = element.getAttribute("data-gs-w");
@@ -749,7 +717,6 @@ export const useGridStore = create<GridState>()(
             const w = wAttr ? parseInt(wAttr, 10) : 1;
             const h = hAttr ? parseInt(hAttr, 10) : 1;
 
-            // Validate parsed values
             if (!isNaN(x) && !isNaN(y) && !isNaN(w) && !isNaN(h)) {
               positionUpdates[widgetId] = { x, y, w, h };
               console.log(`[STORE] DOM position for ${widgetId}:`, {
