@@ -42,7 +42,6 @@ export const useGridstack = (
     widgets,
     isDragging,
     updateWidgetPosition,
-    removeWidget: removeWidgetFromStore,
     toggleWidgetVisibility,
     setDragging,
     restoreAllWidgets,
@@ -51,15 +50,12 @@ export const useGridstack = (
     saveCurrentLayout,
   } = useGridStore();
 
-  // Función ESTRICTA para validar y ajustar posiciones dentro del contenedor (Pecera 6x40)
   const constrainToContainer = useCallback(
     (x: number, y: number, w: number, h: number): ConstrainedPosition => {
       const { MAX_WIDTH, MAX_HEIGHT } = WIDGET_CONFIG.CONTAINER;
 
-      // Sanitizar valores de entrada
       const sanitized = validators.sanitizePosition(x, y, w, h);
 
-      // RESTRICCIONES ESTRICTAS - No permitir que se salga de la pecera
       const constrainedX = Math.max(
         0,
         Math.min(sanitized.x, MAX_WIDTH - sanitized.w)
@@ -69,20 +65,17 @@ export const useGridstack = (
         Math.min(sanitized.y, MAX_HEIGHT - sanitized.h)
       );
 
-      // Asegurar que el ancho y alto no excedan los límites disponibles
       const maxAllowedW = MAX_WIDTH - constrainedX;
       const maxAllowedH = MAX_HEIGHT - constrainedY;
 
       const constrainedW = Math.min(sanitized.w, maxAllowedW);
       const constrainedH = Math.min(sanitized.h, maxAllowedH);
 
-      // VALIDACIÓN FINAL: Si el widget aún se sale, ajustar posición
       let finalX = constrainedX;
       let finalY = constrainedY;
       let finalW = constrainedW;
       let finalH = constrainedH;
 
-      // Verificación adicional para casos extremos
       if (finalX + finalW > MAX_WIDTH) {
         finalX = Math.max(0, MAX_WIDTH - finalW);
       }
@@ -90,7 +83,6 @@ export const useGridstack = (
         finalY = Math.max(0, MAX_HEIGHT - finalH);
       }
 
-      // Última verificación: reducir tamaño si es necesario
       if (finalX + finalW > MAX_WIDTH) {
         finalW = MAX_WIDTH - finalX;
       }
@@ -101,11 +93,10 @@ export const useGridstack = (
       const result = {
         x: finalX,
         y: finalY,
-        w: Math.max(1, finalW), // Mínimo 1 de ancho
-        h: Math.max(1, finalH), // Mínimo 1 de alto
+        w: Math.max(1, finalW),
+        h: Math.max(1, finalH),
       };
 
-      // Log solo si hubo cambios significativos
       const hasChanges =
         result.x !== x || result.y !== y || result.w !== w || result.h !== h;
       if (hasChanges) {
@@ -127,7 +118,6 @@ export const useGridstack = (
     []
   );
 
-  // Función optimizada para actualizar los límites del contenedor
   const updateContainerBounds = useCallback(() => {
     if (!gridRef.current) return;
 
@@ -145,7 +135,6 @@ export const useGridstack = (
     logger.log("CONTAINER", "Updated container bounds", newBounds);
   }, []);
 
-  // Memoize widgets data to prevent unnecessary re-renders
   const memoizedWidgets = useMemo(() => {
     return widgets.map((w) => ({
       id: w.id,
@@ -160,7 +149,6 @@ export const useGridstack = (
     }));
   }, [widgets]);
 
-  // Inicialización con hydration optimizada
   useEffect(() => {
     const timer = setTimeout(() => {
       logger.log(
@@ -181,7 +169,6 @@ export const useGridstack = (
     return () => clearTimeout(timer);
   }, [memoizedWidgets, updateContainerBounds]);
 
-  // Actualizar límites cuando cambie el tamaño de la ventana (con throttle para performance)
   useEffect(() => {
     const throttledResize = performance.throttle(updateContainerBounds, 250);
 
@@ -189,12 +176,10 @@ export const useGridstack = (
     return () => window.removeEventListener("resize", throttledResize);
   }, [updateContainerBounds]);
 
-  // Sincronización cuando se cambia el modo edición para mantener posiciones exactas
   useEffect(() => {
     if (!gridInstance.current || !gridRef.current) return;
 
     if (!isEditMode) {
-      // Cuando se sale del modo edición, forzar sincronización completa
       logger.log(
         "USEGRIDSTACK",
         "Saliendo del modo edición - forzando sincronización"
@@ -206,14 +191,12 @@ export const useGridstack = (
 
       return () => clearTimeout(syncTimer);
     } else {
-      // CRÍTICO: Cuando se ENTRA al modo edición, forzar sincronización desde el store
       logger.log(
         "USEGRIDSTACK",
         "Entrando al modo edición - forzando sincronización desde store"
       );
 
       const syncTimer = setTimeout(() => {
-        // Forzar actualización de GridStack desde el store
         const grid = gridInstance.current;
         if (grid && gridRef.current) {
           memoizedWidgets.forEach((widget) => {
@@ -224,7 +207,6 @@ export const useGridstack = (
             if (element) {
               const node = (element as any).gridstackNode;
 
-              // Comparar posiciones: store vs DOM
               const needsUpdate =
                 !node ||
                 node.x !== widget.x ||
@@ -259,7 +241,6 @@ export const useGridstack = (
                 } catch (error) {
                   logger.warn("SYNC", `Error actualizando ${widget.id}`, error);
 
-                  // Fallback: actualizar atributos DOM directamente
                   element.setAttribute("data-gs-x", widget.x.toString());
                   element.setAttribute("data-gs-y", widget.y.toString());
                   element.setAttribute("data-gs-w", widget.w.toString());
@@ -269,13 +250,12 @@ export const useGridstack = (
             }
           });
         }
-      }, 200); // Dar más tiempo para que GridStack se inicialice completamente
+      }, 200);
 
       return () => clearTimeout(syncTimer);
     }
   }, [isEditMode, syncPositionsFromDOM, memoizedWidgets]);
 
-  // Función para forzar sincronización desde store (similar al toggle visibility)
   const forceGridStackSync = useCallback(() => {
     const grid = gridInstance.current;
     if (!grid || !gridRef.current) return;
@@ -293,7 +273,6 @@ export const useGridstack = (
       if (element && widget.visible) {
         const node = (element as any).gridstackNode;
 
-        // Comparar posiciones: store vs GridStack
         const needsUpdate =
           !node ||
           node.x !== widget.x ||
@@ -319,7 +298,6 @@ export const useGridstack = (
           } catch (error) {
             logger.warn("SYNC", `Error actualizando ${widget.id}`, error);
 
-            // Fallback: actualizar atributos DOM directamente
             element.setAttribute("data-gs-x", widget.x.toString());
             element.setAttribute("data-gs-y", widget.y.toString());
             element.setAttribute("data-gs-w", widget.w.toString());
@@ -332,22 +310,18 @@ export const useGridstack = (
 
   const saveAndExitEditMode = useCallback(() => {
     if (isEditMode && setIsEditMode) {
-      // Forzar sincronización desde DOM antes de salir del modo edición
       syncPositionsFromDOM();
 
-      // Pequeño delay para asegurar sincronización completa
       setTimeout(() => {
         setIsEditMode(false);
       }, 100);
     }
   }, [isEditMode, setIsEditMode, syncPositionsFromDOM]);
 
-  // Configuración optimizada de event listeners
   const setupEventListeners = useCallback(
     (grid: GridStack) => {
       if (!isEditMode) return;
 
-      // Limpiar listeners existentes
       grid.off("dragstart resizestart dragstop resizestop drag resize change");
 
       logger.log(
@@ -355,7 +329,6 @@ export const useGridstack = (
         "Setting up event listeners for edit mode with container constraints"
       );
 
-      // Event listeners optimizados
       grid.on("dragstart resizestart", (event: any, element: any) => {
         const widgetId = element.getAttribute("data-gs-id");
         if (validators.isValidWidgetId(widgetId || "")) {
@@ -375,7 +348,6 @@ export const useGridstack = (
               node &&
               validators.isValidPosition(node.x, node.y, node.w, node.h)
             ) {
-              // Aplicar restricciones del contenedor
               const constrained = constrainToContainer(
                 node.x,
                 node.y,
@@ -392,7 +364,6 @@ export const useGridstack = (
                 }
               );
 
-              // Si la posición cambió por las restricciones, actualizar el DOM
               if (
                 constrained.x !== node.x ||
                 constrained.y !== node.y ||
@@ -404,7 +375,6 @@ export const useGridstack = (
                   `Applying container constraints to ${widgetId}`
                 );
 
-                // Actualizar la posición en GridStack
                 try {
                   grid.update(element, constrained);
                 } catch (error) {
@@ -414,7 +384,6 @@ export const useGridstack = (
                     error
                   );
 
-                  // Fallback: actualizar atributos directamente
                   element.setAttribute("data-gs-x", constrained.x.toString());
                   element.setAttribute("data-gs-y", constrained.y.toString());
                   element.setAttribute("data-gs-w", constrained.w.toString());
@@ -422,7 +391,6 @@ export const useGridstack = (
                 }
               }
 
-              // Aplicar restricciones del contenedor SOLO al finalizar
               const finalConstrained = constrainToContainer(
                 node.x,
                 node.y,
@@ -430,7 +398,6 @@ export const useGridstack = (
                 node.h
               );
 
-              // Si la posición final está fuera de límites, aplicar restricciones
               if (
                 finalConstrained.x !== node.x ||
                 finalConstrained.y !== node.y ||
@@ -473,13 +440,11 @@ export const useGridstack = (
         logger.log("GRIDSTACK", `Finished ${event.type} operation`);
         setDragging(false);
 
-        // Sincronización forzada después de operaciones de drag/resize
         setTimeout(() => {
           syncPositionsFromDOM();
         }, 100);
       });
 
-      // Validación ligera durante drag/resize - Solo logging, no interferir con movimiento
       grid.on("drag resize", (event: any, element: any) => {
         const node = element.gridstackNode;
         if (
@@ -489,7 +454,6 @@ export const useGridstack = (
           const { MAX_WIDTH, MAX_HEIGHT } = WIDGET_CONFIG.CONTAINER;
           const widgetId = element.getAttribute("data-gs-id");
 
-          // Solo logging para debugging, no aplicar restricciones durante el drag
           if (
             node.x < 0 ||
             node.y < 0 ||
@@ -508,9 +472,7 @@ export const useGridstack = (
         }
       });
 
-      // Event listener específico para intercambio de widgets
       grid.on("change", (event: any, items: any[]) => {
-        // Solo procesar si hay múltiples widgets cambiando (intercambio real)
         if (items && items.length > 1) {
           logger.log("GRIDSTACK", "🔄 Intercambio de widgets detectado", {
             changedItems: items.map((item) => ({
@@ -522,7 +484,6 @@ export const useGridstack = (
             })),
           });
 
-          // Actualizar posiciones de todos los widgets afectados por el intercambio
           items.forEach((item: any) => {
             if (item.el) {
               const widgetId = item.el.getAttribute("data-gs-id");
@@ -554,7 +515,6 @@ export const useGridstack = (
             }
           });
         } else if (items && items.length === 1) {
-          // Movimiento libre a espacio vacío - permitir posicionamiento libre
           const item = items[0];
           if (item.el) {
             const widgetId = item.el.getAttribute("data-gs-id");
@@ -592,59 +552,51 @@ export const useGridstack = (
     ]
   );
 
-  // Opciones de GridStack optimizadas para movimiento fluido en pecera 6x40
   const gridOptions = useMemo(
     () => ({
       cellHeight: WIDGET_CONFIG.GRID.CELL_HEIGHT,
-      acceptWidgets: ".grid-stack-item", // Permitir widgets externos
+      acceptWidgets: ".grid-stack-item",
       removable: false,
       staticGrid: !isEditMode,
-      animate: true, // Permitir animaciones para movimiento más fluido
-      float: true, // CRÍTICO: true para permitir posicionamiento libre en espacios vacíos
+      animate: true,
+      float: true,
       column: WIDGET_CONFIG.CONTAINER.MAX_WIDTH,
       margin: WIDGET_CONFIG.GRID.MARGIN,
       minRow: WIDGET_CONFIG.CONTAINER.MIN_HEIGHT,
-      maxRow: WIDGET_CONFIG.CONTAINER.MAX_HEIGHT, // 40 filas
+      maxRow: WIDGET_CONFIG.CONTAINER.MAX_HEIGHT,
       disableDrag: !isEditMode,
       disableResize: !isEditMode,
       resizable: {
         handles: "se",
-        // Snap to grid durante resize
         grid: [
           WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN,
           WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN,
         ],
       },
-      // Configuración para snap automático a la grilla
       verticalMargin: WIDGET_CONFIG.GRID.MARGIN,
       alwaysShowResizeHandle: isEditMode,
-      // Restricciones básicas del contenedor
       minW: 1,
       maxW: WIDGET_CONFIG.CONTAINER.MAX_WIDTH,
       minH: 1,
       maxH: WIDGET_CONFIG.CONTAINER.MAX_HEIGHT,
-      // Configuraciones para snap to grid y mejor experiencia de drag
       dragIn: ".grid-stack-item",
       dragInOptions: {
         revert: "invalid",
         scroll: false,
         appendTo: "body",
         helper: "clone",
-        // CRÍTICO: Configuración para snap automático a la grilla
-        snap: true, // Habilitar snap automático
-        snapMode: "both", // Snap en ambas direcciones
-        snapTolerance: 10, // Tolerancia para snap automático
+        snap: true,
+        snapMode: "both",
+        snapTolerance: 10,
         grid: [
           WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN,
           WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN,
-        ], // Snap a las divisiones de la grilla
+        ],
       },
-      // Configuración para draggable interno (widgets existentes)
       draggable: {
         handle: ".grid-stack-item-content",
         scroll: false,
         appendTo: "body",
-        // CRÍTICO: Snap automático para widgets internos también
         snap: true,
         snapMode: "both",
         snapTolerance: 10,
@@ -657,7 +609,6 @@ export const useGridstack = (
     [isEditMode]
   );
 
-  // Inicialización optimizada de GridStack
   useEffect(() => {
     if (!gridRef.current || !isHydrated) {
       logger.log("USEGRIDSTACK", "Waiting for hydration or grid ref", {
@@ -672,7 +623,6 @@ export const useGridstack = (
       "Initializing GridStack with container constraints"
     );
 
-    // Cleanup anterior
     if (gridInstance.current) {
       try {
         logger.log("USEGRIDSTACK", "Destroying previous GridStack instance");
@@ -684,7 +634,6 @@ export const useGridstack = (
       }
     }
 
-    // Inicialización
     try {
       logger.log(
         "USEGRIDSTACK",
@@ -701,15 +650,11 @@ export const useGridstack = (
         setupEventListeners(gridInstance.current);
         updateContainerBounds();
 
-        // CRÍTICO: Configurar snap automático después de la inicialización
         if (isEditMode) {
           const grid = gridInstance.current;
 
-          // Configurar snap automático usando la API nativa de GridStack
           setTimeout(() => {
-            // Forzar que GridStack use snap automático para posicionamiento
             if (grid && (grid as any).opts) {
-              // Configurar opciones de snap directamente en la instancia
               (grid as any).opts.snapToGrid = true;
               (grid as any).opts.snapTolerance = 10;
 
@@ -718,25 +663,9 @@ export const useGridstack = (
                 "Snap-to-grid configurado en la instancia de GridStack"
               );
             }
-
-            // Configurar guías visuales para la grilla
-            if (gridRef.current) {
-              gridRef.current.style.backgroundImage = `
-                linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
-              `;
-              gridRef.current.style.backgroundSize = `${
-                ((WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN) /
-                  WIDGET_CONFIG.CONTAINER.MAX_WIDTH) *
-                100
-              }% ${
-                WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN
-              }px`;
-            }
           }, 100);
         }
 
-        // Exponer instancia globalmente para sincronización desde store
         (window as any).gridInstance = gridInstance.current;
       }
     } catch (error) {
@@ -755,7 +684,6 @@ export const useGridstack = (
         }
       }
 
-      // Limpiar referencia global
       if ((window as any).gridInstance) {
         (window as any).gridInstance = null;
       }
@@ -768,7 +696,32 @@ export const useGridstack = (
     updateContainerBounds,
   ]);
 
-  // Sincronización optimizada de widgets con throttling
+  // Efecto separado para controlar la visibilidad de la grilla según el modo de edición
+  useEffect(() => {
+    if (!gridRef.current) return;
+
+    if (isEditMode) {
+      // Mostrar grilla en modo edición
+      gridRef.current.style.backgroundImage = `
+        linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
+      `;
+      gridRef.current.style.backgroundSize = `${
+        ((WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN) /
+          WIDGET_CONFIG.CONTAINER.MAX_WIDTH) *
+        100
+      }% ${WIDGET_CONFIG.GRID.CELL_HEIGHT + WIDGET_CONFIG.GRID.MARGIN}px`;
+
+      logger.log("USEGRIDSTACK", "Grid lines enabled for edit mode");
+    } else {
+      // Ocultar grilla en modo normal
+      gridRef.current.style.backgroundImage = "none";
+      gridRef.current.style.backgroundSize = "auto";
+
+      logger.log("USEGRIDSTACK", "Grid lines disabled for normal mode");
+    }
+  }, [isEditMode]);
+
   useEffect(() => {
     if (
       !gridInstance.current ||
@@ -797,7 +750,6 @@ export const useGridstack = (
         if (element) {
           const node = element.gridstackNode;
 
-          // Aplicar restricciones del contenedor a los datos del store
           const constrained = constrainToContainer(
             widget.x,
             widget.y,
@@ -827,7 +779,6 @@ export const useGridstack = (
             try {
               grid.update(element, constrained);
 
-              // Si se aplicaron restricciones, actualizar el store
               if (
                 constrained.x !== widget.x ||
                 constrained.y !== widget.y ||
@@ -868,7 +819,6 @@ export const useGridstack = (
     gridRef,
     widgets: memoizedWidgets,
     toggleWidgetVisibility,
-    removeWidget: removeWidgetFromStore,
     restoreAllWidgets,
     resetToDefaults,
     saveAndExitEditMode,

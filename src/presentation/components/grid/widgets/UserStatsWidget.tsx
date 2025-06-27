@@ -16,9 +16,7 @@ const STAT_COLORS = {
 } as const;
 
 export function UserStatsWidget({ data, className }: UserStatsWidgetProps) {
-  // Memoizar cálculos para optimizar performance
   const stats = useMemo(() => {
-    // Validar data
     if (!data || typeof data !== "object") {
       return null;
     }
@@ -51,7 +49,6 @@ export function UserStatsWidget({ data, className }: UserStatsWidgetProps) {
     ];
   }, [data]);
 
-  // Early return para datos inválidos
   if (!stats) {
     return (
       <div className={cn("text-center py-8", className)}>

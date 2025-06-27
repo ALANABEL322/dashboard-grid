@@ -1,14 +1,5 @@
 import React, { useEffect, useCallback } from "react";
-import {
-  Users,
-  Edit3,
-  Eye,
-  Save,
-  RefreshCw,
-  Trash,
-  RotateCcw,
-  Square,
-} from "lucide-react";
+import { Users, Edit3, Eye, Save, RotateCcw } from "lucide-react";
 import { Button } from "@/shared/components/ui";
 import { GridWidget } from "../components/grid/GridWidget";
 import { useGridstack } from "../hooks/useGridstack";
@@ -27,7 +18,6 @@ export function GridPage() {
     gridRef,
     widgets,
     toggleWidgetVisibility,
-    removeWidget,
     restoreAllWidgets,
     resetToDefaults,
     isDragging,
@@ -37,7 +27,6 @@ export function GridPage() {
     forceGridStackSync,
   } = useGridstack(isEditMode, setIsEditMode);
 
-  // Debug inicial optimizado
   useEffect(() => {
     logger.group("GRIDPAGE", "Component mounted - Initial state", () => {
       const currentWidgets = widgets.map((w) => ({
@@ -51,7 +40,6 @@ export function GridPage() {
 
       logger.log("GRIDPAGE", "Current widgets from store", currentWidgets);
 
-      // Verificar localStorage
       const stored = localStorage.getItem("grid-storage");
       if (stored) {
         try {
@@ -72,20 +60,18 @@ export function GridPage() {
         logger.log("GRIDPAGE", "No data found in localStorage");
       }
     });
-  }, []); // Solo ejecutar una vez al montar
+  }, []);
 
   const handleToggleEditMode = useCallback(() => {
     const newEditMode = !isEditMode;
     setIsEditMode(newEditMode);
 
-    // Si estamos ENTRANDO al modo edición, forzar sincronización desde store
     if (newEditMode) {
       logger.log(
         "GRIDPAGE",
         "Entrando al modo edición - forzando sincronización desde store"
       );
 
-      // Dar tiempo a que GridStack se inicialice y luego forzar sync
       setTimeout(() => {
         forceGridStackSync();
       }, 300);
@@ -107,10 +93,8 @@ export function GridPage() {
       }))
     );
 
-    // Forzar sincronización desde DOM antes de guardar para mantener posiciones exactas
     syncPositionsFromDOM();
 
-    // Delay para asegurar que la sincronización se complete antes de guardar
     setTimeout(() => {
       saveCurrentLayout();
       setIsEditMode(false);
@@ -163,7 +147,6 @@ export function GridPage() {
     }
   }, [resetToDefaults]);
 
-  // Memoizar cálculos
   const visibleWidgetsCount = widgets.filter((w) => w.visible).length;
   const totalWidgetsCount = widgets.length;
   const hiddenWidgetsCount = totalWidgetsCount - visibleWidgetsCount;
@@ -208,23 +191,7 @@ export function GridPage() {
           z-index: 1;
         }
 
-        /* Guías visuales de la grilla para snap automático */
-        .grid-stack.edit-mode::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: 
-            linear-gradient(to right, rgba(59, 130, 246, 0.15) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(59, 130, 246, 0.15) 1px, transparent 1px);
-          background-size: 
-            calc(100% / 6) 78px,
-            calc(100% / 6) 78px;
-          pointer-events: none;
-          z-index: 0;
-        }
+
 
         .grid-stack.edit-mode::after {
           content: '🏊‍♂️ Pecera 6x40 - Posicionamiento Libre + Intercambio';
@@ -312,18 +279,20 @@ export function GridPage() {
       `}</style>
 
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
           <div className="flex items-center gap-2">
-            <Users className="h-8 w-8" />
+            <Users className="h-6 w-6 sm:h-8 sm:w-8" />
             <div>
-              <h1 className="text-3xl font-bold">Dashboard de Clientes</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                Dashboard de Clientes
+              </h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">
                 Gestiona la información de tus clientes
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>
                 {visibleWidgetsCount}/{totalWidgetsCount} widgets visibles
@@ -338,17 +307,17 @@ export function GridPage() {
             <Button
               variant={isEditMode ? "default" : "outline"}
               onClick={handleToggleEditMode}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full sm:w-auto"
             >
               {isEditMode ? (
                 <>
                   <Eye className="h-4 w-4" />
-                  Modo Vista
+                  <span>Modo Vista</span>
                 </>
               ) : (
                 <>
                   <Edit3 className="h-4 w-4" />
-                  Modo Edición
+                  <span>Modo Edición</span>
                 </>
               )}
             </Button>
@@ -356,30 +325,33 @@ export function GridPage() {
         </div>
 
         {isEditMode && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Edit3 className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-900">
-                  Modo Edición Activo
-                </span>
-                <span className="text-sm text-blue-600">
-                  Arrastra, redimensiona y gestiona la visibilidad.
-                  Posicionamiento libre en espacios vacíos + intercambio
-                  automático sobre otros widgets.
-                </span>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
+            <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <Edit3 className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <span className="font-medium text-blue-900 block sm:inline">
+                    Modo Edición Activo
+                  </span>
+                  <span className="text-sm text-blue-600 block sm:inline sm:ml-2">
+                    Arrastra, redimensiona y gestiona la visibilidad.
+                    Posicionamiento libre en espacios vacíos.
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {hiddenWidgetsCount > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRestoreWidgets}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs sm:text-sm"
                   >
                     <Eye className="h-3 w-3" />
-                    Mostrar Ocultos ({hiddenWidgetsCount})
+                    <span className="hidden sm:inline">Mostrar Ocultos</span>
+                    <span className="sm:hidden">Mostrar</span> (
+                    {hiddenWidgetsCount})
                   </Button>
                 )}
 
@@ -387,80 +359,23 @@ export function GridPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleResetToDefaults}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs sm:text-sm"
                 >
                   <RotateCcw className="h-3 w-3" />
-                  Resetear Todo
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    logger.log("DEBUG", "Forzando sincronización manual");
-                    forceGridStackSync();
-                  }}
-                  className="flex items-center gap-1"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  Sincronizar
+                  <span className="hidden sm:inline">Resetear Todo</span>
+                  <span className="sm:hidden">Reset</span>
                 </Button>
 
                 <Button
                   variant="default"
                   size="sm"
                   onClick={handleSaveLayout}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs sm:text-sm"
                 >
                   <Save className="h-3 w-3" />
-                  Guardar Layout
+                  <span className="hidden sm:inline">Guardar Layout</span>
+                  <span className="sm:hidden">Guardar</span>
                 </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearStorage}
-                  className="flex items-center gap-1"
-                >
-                  <Trash className="h-3 w-3" />
-                  Limpiar Almacenamiento
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Información del contenedor delimitado */}
-        {isEditMode && (
-          <div className="container-info rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Square className="h-5 w-5 text-blue-600" />
-                <div>
-                  <span className="font-medium text-blue-900">
-                    🏊‍♂️ Pecera con Posicionamiento Híbrido
-                  </span>
-                  <p className="text-sm text-blue-700 mt-1">
-                    Los widgets se pueden <strong>POSICIONAR LIBREMENTE</strong>{" "}
-                    en espacios vacíos y se{" "}
-                    <strong>INTERCAMBIAN AUTOMÁTICAMENTE</strong> cuando se
-                    arrastran sobre otros widgets dentro de la pecera de{" "}
-                    <strong>
-                      {WIDGET_CONFIG.CONTAINER.MAX_WIDTH} columnas
-                    </strong>{" "}
-                    x{" "}
-                    <strong>{WIDGET_CONFIG.CONTAINER.MAX_HEIGHT} filas</strong>.{" "}
-                    <span className="font-semibold text-blue-800">
-                      Posicionamiento libre + intercambio automático + snap a
-                      grilla.
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <div className="text-sm text-blue-600">
-                <div className="bg-blue-100 px-3 py-1 rounded-full">
-                  🏊‍♂️ Pecera: {containerBounds.maxX}x{containerBounds.maxY}
-                </div>
               </div>
             </div>
           </div>
@@ -468,19 +383,17 @@ export function GridPage() {
 
         <div className="text-sm text-gray-500">
           {isEditMode ? (
-            <p>
+            <p className="text-sm sm:text-base">
               🔧 <strong>Modo Edición:</strong> Arrastra los widgets para
-              posicionarlos libremente en espacios vacíos o intercambiarlos
-              automáticamente cuando los arrastras sobre otros widgets.
-              Redimensiona desde las esquinas, y usa el ícono 👁️ para
-              mostrar/ocultar elementos.{" "}
-              <strong className="text-blue-600">
-                Posicionamiento libre en espacios vacíos + intercambio
-                automático cuando hay colisión. Todo con snap a grilla.
-              </strong>
+              posicionarlos libremente en espacios vacíos. Redimensiona desde
+              las esquinas, y usa el ícono 👁️ para mostrar/ocultar elementos.{" "}
+              <span className="text-blue-600 font-medium">
+                Posicionamiento libre en espacios vacíos. Todo con snap a
+                grilla.
+              </span>
             </p>
           ) : (
-            <p>
+            <p className="text-sm sm:text-base">
               👀 <strong>Modo Vista:</strong> Los widgets están estáticos y
               optimizados para visualización de datos de clientes.
             </p>
@@ -501,7 +414,6 @@ export function GridPage() {
               widget={widget}
               isEditMode={isEditMode}
               onToggleVisibility={toggleWidgetVisibility}
-              onRemoveWidget={removeWidget}
             />
           ))}
         </div>
