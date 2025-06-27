@@ -119,6 +119,7 @@ export interface GridActions {
   toggleWidgetVisibility: (id: string) => void;
   setDragging: (isDragging: boolean, widgetId?: string) => void;
   restoreAllWidgets: () => void;
+  resetToDefaults: () => void;
   setWidgetPage: (widgetId: string, page: number) => void;
   getWidgetPage: (widgetId: string) => number;
   syncPositionsFromDOM: () => void;
@@ -126,3 +127,52 @@ export interface GridActions {
 }
 
 export type GridStore = GridState & GridActions;
+
+// Tipos específicos para GridStack (eliminar 'any')
+export interface GridStackNode {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  id?: string;
+  content?: string | HTMLElement;
+  el?: HTMLElement;
+}
+
+export interface GridStackElement extends HTMLElement {
+  gridstackNode?: GridStackNode;
+}
+
+// GridStack event handler - uses native Event type
+export type GridStackEventHandler = (
+  event: Event,
+  element: GridStackElement
+) => void;
+
+// Tipos para eventos específicos
+export type GridStackDragEvent = "dragstart" | "drag" | "dragstop";
+export type GridStackResizeEvent = "resizestart" | "resize" | "resizestop";
+export type GridStackChangeEvent = "change" | "added" | "removed";
+
+export type GridStackEventType =
+  | GridStackDragEvent
+  | GridStackResizeEvent
+  | GridStackChangeEvent;
+
+// Tipo para localStorage data
+export interface StoredGridData {
+  state?: {
+    widgets?: Array<{
+      id: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      visible: boolean;
+      title: string;
+      type: WidgetType;
+      data: WidgetData;
+    }>;
+    widgetPagination?: Record<string, number>;
+  };
+}
