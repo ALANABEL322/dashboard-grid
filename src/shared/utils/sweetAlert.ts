@@ -123,32 +123,67 @@ export const showDraggable = (title: string, text?: string) => {
 export const ProjectAlerts = {
   layoutSaved: () =>
     showSuccess(
-      "¡Layout Guardado!",
-      "El layout se ha guardado correctamente y has cambiado al modo vista."
+      "Layout Guardado",
+      "La configuración de widgets se ha guardado correctamente"
     ),
 
   navigationConfirm: () =>
-    showInfo(
-      "🎯 Layout Guardado",
-      "Has salido del modo edición y se ha guardado el layout automáticamente. ¿Deseas continuar con la navegación?"
-    ),
+    Swal.fire({
+      title: "¿Cambiar de página?",
+      text: "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, cambiar",
+      cancelButtonText: "Cancelar",
+      ...baseConfig,
+    }),
 
   clearStorageConfirm: () =>
-    showWarning(
-      "⚠️ ¿Estás seguro?",
-      "Esto eliminará completamente todos los datos guardados y reiniciará el dashboard a valores por defecto."
-    ),
+    Swal.fire({
+      title: "¿Limpiar almacenamiento?",
+      text: "Esto eliminará todas las configuraciones guardadas. Esta acción no se puede deshacer.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, limpiar",
+      cancelButtonText: "Cancelar",
+      ...baseConfig,
+    }),
 
   storageCleared: () =>
     showSuccess(
-      "¡Limpiado!",
-      "Los datos se han eliminado correctamente. La página se recargará."
+      "Almacenamiento limpiado",
+      "Todas las configuraciones han sido eliminadas"
     ),
+
+  confirm: (
+    title: string,
+    text: string,
+    confirmText: string = "Confirmar",
+    cancelText: string = "Cancelar"
+  ) =>
+    Swal.fire({
+      title,
+      text,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: confirmText,
+      cancelButtonText: cancelText,
+      ...baseConfig,
+    }),
+
+  success: (title: string, text?: string) =>
+    Swal.fire({
+      title,
+      text,
+      icon: "success",
+      confirmButtonText: "OK",
+      ...baseConfig,
+    }),
 
   draggableExample: () =>
     showDraggable(
-      "Drag me!",
-      "¡Puedes arrastrar esta alerta por toda la pantalla!"
+      "Ejemplo Draggable",
+      "Este es un ejemplo de SweetAlert2 draggable"
     ),
 };
 
