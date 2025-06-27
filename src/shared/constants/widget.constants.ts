@@ -6,14 +6,13 @@ export const WIDGET_CONFIG = {
     MIN_ROW: 1,
   },
   CONTAINER: {
-    // Configuración del contenedor delimitado (pecera) - ALTURA DUPLICADA
-    MIN_WIDTH: 6, // Ancho mínimo en columnas
-    MAX_WIDTH: 6, // Ancho máximo en columnas
-    MIN_HEIGHT: 12, // Altura mínima en filas
-    MAX_HEIGHT: 40, // Altura máxima en filas (duplicada de 20 a 40)
-    PADDING: 16, // Padding interno del contenedor
-    BORDER_WIDTH: 2, // Ancho del borde del contenedor
-    CONSTRAIN_TO_CONTAINER: true, // Forzar widgets dentro del contenedor
+    MIN_WIDTH: 6,
+    MAX_WIDTH: 6,
+    MIN_HEIGHT: 12,
+    MAX_HEIGHT: 40,
+    PADDING: 16,
+    BORDER_WIDTH: 2,
+    CONSTRAIN_TO_CONTAINER: true,
   },
   PAGINATION: {
     ITEMS_PER_PAGE: 5,

@@ -27,7 +27,6 @@ export const UserTableWidget: React.FC<UserTableWidgetProps> = ({
   onPageChange,
   className,
 }) => {
-  // Validate data
   if (!data || !data.users || !Array.isArray(data.users)) {
     return (
       <div className={cn("w-full text-center py-8", className)}>
@@ -43,7 +42,6 @@ export const UserTableWidget: React.FC<UserTableWidgetProps> = ({
   const itemsPerPage = WIDGET_CONFIG.PAGINATION.ITEMS_PER_PAGE;
   const totalPages = Math.max(1, Math.ceil(users.length / itemsPerPage));
 
-  // Validate and clamp current page
   const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
 
   const startIndex = (validCurrentPage - 1) * itemsPerPage;
@@ -64,7 +62,6 @@ export const UserTableWidget: React.FC<UserTableWidgetProps> = ({
     }
   };
 
-  // If users array is empty
   if (users.length === 0) {
     return (
       <div className={cn("w-full text-center py-8", className)}>

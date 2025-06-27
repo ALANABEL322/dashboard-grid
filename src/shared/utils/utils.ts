@@ -5,7 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Sistema de logging condicional para desarrollo
 const isDevelopment = process.env.NODE_ENV === "development";
 
 export const logger = {
@@ -33,7 +32,6 @@ export const logger = {
   },
 };
 
-// Utilidades de validación
 export const validators = {
   isValidPosition: (x: number, y: number, w: number, h: number): boolean => {
     return (
@@ -66,7 +64,6 @@ export const validators = {
   },
 };
 
-// Utilidades de performance
 export const performance = {
   debounce: <T extends (...args: any[]) => any>(
     func: T,
