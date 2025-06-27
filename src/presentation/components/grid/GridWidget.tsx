@@ -169,9 +169,6 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
         data-gs-x={widget.x}
         data-gs-y={widget.y}
         data-gs-id={widget.id}
-        style={{
-          display: !widget.visible && !isEditMode ? "none" : "block",
-        }}
       >
         <div
           className={`grid-stack-item-content bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden relative ${

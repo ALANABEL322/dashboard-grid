@@ -1,23 +1,157 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import type {
+  GridWidgetData,
+  GridStore,
+  StoredGridData,
+  UserTableData,
+  UserStatsData,
+  UserActivityData,
+  UserGrowthData,
+  UserLocationsData,
+  CustomWidgetData,
+} from "@/shared/types/widget.types";
+import { logger, validators } from "@/shared/utils/utils";
+import { WIDGET_CONFIG } from "@/shared/constants/widget.constants";
 
-export interface GridWidgetData {
-  id: string;
-  title: string;
-  type:
-    | "user-table"
-    | "user-stats"
-    | "user-activity"
-    | "user-growth"
-    | "user-locations"
-    | "custom";
-  data: any;
-  visible: boolean;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+// Re-export for compatibility
+export type { GridWidgetData } from "@/shared/types/widget.types";
+
+// Mock data mejorado con tipos específicos
+const mockUsers = [
+  { id: 1, name: "Ana García", email: "ana@empresa.com", type: "VIP" as const },
+  {
+    id: 2,
+    name: "Carlos López",
+    email: "carlos@empresa.com",
+    type: "Premium" as const,
+  },
+  {
+    id: 3,
+    name: "María Rodríguez",
+    email: "maria@empresa.com",
+    type: "Básico" as const,
+  },
+  {
+    id: 4,
+    name: "Juan Martínez",
+    email: "juan@empresa.com",
+    type: "VIP" as const,
+  },
+  {
+    id: 5,
+    name: "Laura Sánchez",
+    email: "laura@empresa.com",
+    type: "Premium" as const,
+  },
+  {
+    id: 6,
+    name: "Pedro Gómez",
+    email: "pedro@empresa.com",
+    type: "Básico" as const,
+  },
+  {
+    id: 7,
+    name: "Sofia Herrera",
+    email: "sofia@empresa.com",
+    type: "VIP" as const,
+  },
+  {
+    id: 8,
+    name: "Diego Torres",
+    email: "diego@empresa.com",
+    type: "Premium" as const,
+  },
+  {
+    id: 9,
+    name: "Elena Vargas",
+    email: "elena@empresa.com",
+    type: "Básico" as const,
+  },
+  {
+    id: 10,
+    name: "Roberto Silva",
+    email: "roberto@empresa.com",
+    type: "VIP" as const,
+  },
+  {
+    id: 11,
+    name: "Carmen Ruiz",
+    email: "carmen@empresa.com",
+    type: "Premium" as const,
+  },
+  {
+    id: 12,
+    name: "Miguel Torres",
+    email: "miguel@empresa.com",
+    type: "Básico" as const,
+  },
+  {
+    id: 13,
+    name: "Patricia Vega",
+    email: "patricia@empresa.com",
+    type: "VIP" as const,
+  },
+  {
+    id: 14,
+    name: "Fernando Castro",
+    email: "fernando@empresa.com",
+    type: "Premium" as const,
+  },
+  {
+    id: 15,
+    name: "Gabriela Mendoza",
+    email: "gabriela@empresa.com",
+    type: "Básico" as const,
+  },
+  {
+    id: 16,
+    name: "Andrés Romero",
+    email: "andres@empresa.com",
+    type: "VIP" as const,
+  },
+  {
+    id: 17,
+    name: "Valeria Guerrero",
+    email: "valeria@empresa.com",
+    type: "Premium" as const,
+  },
+  {
+    id: 18,
+    name: "Javier Delgado",
+    email: "javier@empresa.com",
+    type: "Básico" as const,
+  },
+  {
+    id: 19,
+    name: "Natalia Vargas",
+    email: "natalia@empresa.com",
+    type: "VIP" as const,
+  },
+  {
+    id: 20,
+    name: "Ricardo Flores",
+    email: "ricardo@empresa.com",
+    type: "Premium" as const,
+  },
+];
+
+const mockActivities = [
+  { user: "Ana García", action: "Inició sesión", time: "Hace 5 min" },
+  { user: "Carlos López", action: "Actualizó perfil", time: "Hace 12 min" },
+  { user: "María Rodríguez", action: "Realizó compra", time: "Hace 1 hora" },
+  { user: "Juan Martínez", action: "Descargó reporte", time: "Hace 2 horas" },
+  { user: "Laura Sánchez", action: "Cambió contraseña", time: "Hace 3 horas" },
+];
+
+const mockGrowthData = [
+  { month: "Ene", users: 120 },
+  { month: "Feb", users: 145 },
+  { month: "Mar", users: 180 },
+  { month: "Abr", users: 220 },
+  { month: "May", users: 280 },
+  { month: "Jun", users: 350 },
+];
 
 interface GridState {
   widgets: GridWidgetData[];
@@ -38,6 +172,7 @@ interface GridState {
   toggleWidgetVisibility: (id: string) => void;
   setDragging: (isDragging: boolean, widgetId?: string) => void;
   restoreAllWidgets: () => void;
+  resetToDefaults: () => void;
   setWidgetPage: (widgetId: string, page: number) => void;
   getWidgetPage: (widgetId: string) => number;
   syncPositionsFromDOM: () => void;
@@ -225,192 +360,6 @@ const initialWidgets: GridWidgetData[] = [
           email: "joaquin.navarro@example.com",
           type: "Premium",
         },
-        {
-          id: 30,
-          name: "Renata Campos",
-          email: "renata.campos@example.com",
-          type: "VIP",
-        },
-        {
-          id: 31,
-          name: "Tomás Peña",
-          email: "tomas.pena@example.com",
-          type: "Básico",
-        },
-        {
-          id: 32,
-          name: "Ximena Rojas",
-          email: "ximena.rojas@example.com",
-          type: "Premium",
-        },
-        {
-          id: 33,
-          name: "Nicolás Herrera",
-          email: "nicolas.herrera@example.com",
-          type: "VIP",
-        },
-        {
-          id: 34,
-          name: "Antonella Vázquez",
-          email: "antonella.vazquez@example.com",
-          type: "Básico",
-        },
-        {
-          id: 35,
-          name: "Maximiliano Soto",
-          email: "maximiliano.soto@example.com",
-          type: "Premium",
-        },
-        {
-          id: 36,
-          name: "Constanza Ibarra",
-          email: "constanza.ibarra@example.com",
-          type: "VIP",
-        },
-        {
-          id: 37,
-          name: "Ignacio Molina",
-          email: "ignacio.molina@example.com",
-          type: "Básico",
-        },
-        {
-          id: 38,
-          name: "Florencia Cáceres",
-          email: "florencia.caceres@example.com",
-          type: "Premium",
-        },
-        {
-          id: 39,
-          name: "Benjamín Cortés",
-          email: "benjamin.cortes@example.com",
-          type: "VIP",
-        },
-        {
-          id: 40,
-          name: "Martina Pacheco",
-          email: "martina.pacheco@example.com",
-          type: "Básico",
-        },
-        {
-          id: 41,
-          name: "Agustín Sandoval",
-          email: "agustin.sandoval@example.com",
-          type: "Premium",
-        },
-        {
-          id: 42,
-          name: "Emilia Fuentes",
-          email: "emilia.fuentes@example.com",
-          type: "VIP",
-        },
-        {
-          id: 43,
-          name: "Thiago Ríos",
-          email: "thiago.rios@example.com",
-          type: "Básico",
-        },
-        {
-          id: 44,
-          name: "Julieta Méndez",
-          email: "julieta.mendez@example.com",
-          type: "Premium",
-        },
-        {
-          id: 45,
-          name: "Gael Núñez",
-          email: "gael.nunez@example.com",
-          type: "VIP",
-        },
-        {
-          id: 46,
-          name: "Catalina Salinas",
-          email: "catalina.salinas@example.com",
-          type: "Básico",
-        },
-        {
-          id: 47,
-          name: "Bruno Carrasco",
-          email: "bruno.carrasco@example.com",
-          type: "Premium",
-        },
-        {
-          id: 48,
-          name: "Amelia Figueroa",
-          email: "amelia.figueroa@example.com",
-          type: "VIP",
-        },
-        {
-          id: 49,
-          name: "Lautaro Bustos",
-          email: "lautaro.bustos@example.com",
-          type: "Básico",
-        },
-        {
-          id: 50,
-          name: "Regina Contreras",
-          email: "regina.contreras@example.com",
-          type: "Premium",
-        },
-        {
-          id: 51,
-          name: "Santino Muñoz",
-          email: "santino.munoz@example.com",
-          type: "VIP",
-        },
-        {
-          id: 52,
-          name: "Bianca Araya",
-          email: "bianca.araya@example.com",
-          type: "Básico",
-        },
-        {
-          id: 53,
-          name: "Enzo Pizarro",
-          email: "enzo.pizarro@example.com",
-          type: "Premium",
-        },
-        {
-          id: 54,
-          name: "Delfina Tapia",
-          email: "delfina.tapia@example.com",
-          type: "VIP",
-        },
-        {
-          id: 55,
-          name: "Matías Bravo",
-          email: "matias.bravo@example.com",
-          type: "Básico",
-        },
-        {
-          id: 56,
-          name: "Mía Gallardo",
-          email: "mia.gallardo@example.com",
-          type: "Premium",
-        },
-        {
-          id: 57,
-          name: "Damián Vera",
-          email: "damian.vera@example.com",
-          type: "VIP",
-        },
-        {
-          id: 58,
-          name: "Abril Moya",
-          email: "abril.moya@example.com",
-          type: "Básico",
-        },
-        {
-          id: 59,
-          name: "Julián Leiva",
-          email: "julian.leiva@example.com",
-          type: "Premium",
-        },
-        {
-          id: 60,
-          name: "Alma Castillo",
-          email: "alma.castillo@example.com",
-          type: "VIP",
-        },
       ],
     },
     visible: true,
@@ -585,7 +534,140 @@ export const useGridStore = create<GridState>()(
       },
 
       toggleWidgetVisibility: (id) => {
-        console.log(`[STORE] toggleWidgetVisibility - ID: ${id}`);
+        logger.log("STORE", `toggleWidgetVisibility - ID: ${id}`);
+
+        // First, sync current positions from DOM to ensure we save the latest position
+        const state = get();
+        const widget = state.widgets.find((w) => w.id === id);
+
+        if (!widget) {
+          logger.warn("STORE", `Widget ${id} not found in store`);
+          return;
+        }
+
+        if (widget.visible) {
+          // Widget is about to be hidden, sync its current position from DOM first
+          logger.log(
+            "STORE",
+            `Widget ${id} is being hidden, syncing position first`
+          );
+
+          if (typeof document !== "undefined") {
+            const element = document.querySelector(`[data-gs-id="${id}"]`);
+            if (element) {
+              // Priorizar gridstackNode sobre atributos DOM
+              const node = (element as any).gridstackNode;
+              let x, y, w, h;
+
+              if (
+                node &&
+                validators.isValidPosition(node.x, node.y, node.w, node.h)
+              ) {
+                x = node.x;
+                y = node.y;
+                w = node.w;
+                h = node.h;
+                logger.log("STORE", `Using gridstackNode data for ${id}:`, {
+                  x,
+                  y,
+                  w,
+                  h,
+                });
+              } else {
+                // Fallback a atributos DOM
+                const xAttr = element.getAttribute("data-gs-x");
+                const yAttr = element.getAttribute("data-gs-y");
+                const wAttr = element.getAttribute("data-gs-w");
+                const hAttr = element.getAttribute("data-gs-h");
+
+                x = xAttr ? parseInt(xAttr, 10) : widget.x;
+                y = yAttr ? parseInt(yAttr, 10) : widget.y;
+                w = wAttr ? parseInt(wAttr, 10) : widget.w;
+                h = hAttr ? parseInt(hAttr, 10) : widget.h;
+                logger.log("STORE", `Using DOM attributes for ${id}:`, {
+                  x,
+                  y,
+                  w,
+                  h,
+                });
+              }
+
+              if (validators.isValidPosition(x, y, w, h)) {
+                logger.log(
+                  "STORE",
+                  `Syncing position for ${id} before hiding:`,
+                  {
+                    from: {
+                      x: widget.x,
+                      y: widget.y,
+                      w: widget.w,
+                      h: widget.h,
+                    },
+                    to: { x, y, w, h },
+                  }
+                );
+
+                // Update position and visibility in one go
+                set((state) => ({
+                  widgets: state.widgets.map((widget) =>
+                    widget.id === id
+                      ? { ...widget, x, y, w, h, visible: false }
+                      : widget
+                  ),
+                }));
+                return;
+              }
+            }
+          }
+        } else {
+          // Widget is about to be shown - FORZAR SINCRONIZACIÓN DESDE STORE
+          logger.log(
+            "STORE",
+            `Widget ${id} is being shown, forcing position from store`
+          );
+
+          // Cuando se muestra un widget, usar la posición guardada en el store
+          set((state) => ({
+            widgets: state.widgets.map((w) =>
+              w.id === id ? { ...w, visible: true } : w
+            ),
+          }));
+
+          // Forzar actualización de GridStack después de mostrar
+          setTimeout(() => {
+            if (typeof document !== "undefined") {
+              const element = document.querySelector(`[data-gs-id="${id}"]`);
+              if (element) {
+                const grid = (window as any).gridInstance; // Acceso global temporal
+                if (grid) {
+                  try {
+                    grid.update(element, {
+                      x: widget.x,
+                      y: widget.y,
+                      w: widget.w,
+                      h: widget.h,
+                    });
+                    logger.log("STORE", `Forced GridStack update for ${id}`, {
+                      x: widget.x,
+                      y: widget.y,
+                      w: widget.w,
+                      h: widget.h,
+                    });
+                  } catch (error) {
+                    logger.warn(
+                      "STORE",
+                      `Error forcing GridStack update for ${id}`,
+                      error
+                    );
+                  }
+                }
+              }
+            }
+          }, 100);
+          return;
+        }
+
+        // Default behavior: just toggle visibility
         set((state) => ({
           widgets: state.widgets.map((widget) =>
             widget.id === id ? { ...widget, visible: !widget.visible } : widget
@@ -601,8 +683,25 @@ export const useGridStore = create<GridState>()(
       },
 
       restoreAllWidgets: () => {
-        console.log(`[STORE] restoreAllWidgets - Restoring to initial state`);
-        set({ widgets: initialWidgets });
+        console.log(
+          `[STORE] restoreAllWidgets - Restoring visibility only, keeping saved positions`
+        );
+        set((state) => ({
+          widgets: state.widgets.map((widget) => ({
+            ...widget,
+            visible: true, // Only restore visibility, keep saved positions and sizes
+          })),
+        }));
+      },
+
+      resetToDefaults: () => {
+        console.log("[STORE] resetToDefaults - Resetting to default widgets");
+        set({
+          widgets: initialWidgets,
+          isDragging: false,
+          draggedWidgetId: null,
+          widgetPagination: {},
+        });
       },
 
       setWidgetPage: (widgetId, page) => {
@@ -620,6 +719,13 @@ export const useGridStore = create<GridState>()(
 
       syncPositionsFromDOM: () => {
         console.log("[STORE] syncPositionsFromDOM - Starting sync from DOM");
+
+        // Validate DOM is ready
+        if (typeof document === "undefined") {
+          console.warn("[STORE] DOM not available for sync");
+          return;
+        }
+
         const gridElements = document.querySelectorAll(".grid-stack-item");
         console.log(
           `[STORE] Found ${gridElements.length} grid elements in DOM`
@@ -632,18 +738,34 @@ export const useGridStore = create<GridState>()(
         gridElements.forEach((element) => {
           const widgetId = element.getAttribute("data-gs-id");
           if (widgetId) {
-            const x = parseInt(element.getAttribute("data-gs-x") || "0");
-            const y = parseInt(element.getAttribute("data-gs-y") || "0");
-            const w = parseInt(element.getAttribute("data-gs-w") || "1");
-            const h = parseInt(element.getAttribute("data-gs-h") || "1");
+            // Safe parsing with validation
+            const xAttr = element.getAttribute("data-gs-x");
+            const yAttr = element.getAttribute("data-gs-y");
+            const wAttr = element.getAttribute("data-gs-w");
+            const hAttr = element.getAttribute("data-gs-h");
 
-            positionUpdates[widgetId] = { x, y, w, h };
-            console.log(`[STORE] DOM position for ${widgetId}:`, {
-              x,
-              y,
-              w,
-              h,
-            });
+            const x = xAttr ? parseInt(xAttr, 10) : 0;
+            const y = yAttr ? parseInt(yAttr, 10) : 0;
+            const w = wAttr ? parseInt(wAttr, 10) : 1;
+            const h = hAttr ? parseInt(hAttr, 10) : 1;
+
+            // Validate parsed values
+            if (!isNaN(x) && !isNaN(y) && !isNaN(w) && !isNaN(h)) {
+              positionUpdates[widgetId] = { x, y, w, h };
+              console.log(`[STORE] DOM position for ${widgetId}:`, {
+                x,
+                y,
+                w,
+                h,
+              });
+            } else {
+              console.warn(`[STORE] Invalid position data for ${widgetId}`, {
+                xAttr,
+                yAttr,
+                wAttr,
+                hAttr,
+              });
+            }
           }
         });
 

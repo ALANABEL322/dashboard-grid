@@ -27,22 +27,54 @@ export const UserTableWidget: React.FC<UserTableWidgetProps> = ({
   onPageChange,
   className,
 }) => {
+  // Validate data
+  if (!data || !data.users || !Array.isArray(data.users)) {
+    return (
+      <div className={cn("w-full text-center py-8", className)}>
+        <div className="text-gray-500">
+          <div className="text-2xl mb-2">📊</div>
+          <p className="text-sm">No hay datos de usuarios disponibles</p>
+        </div>
+      </div>
+    );
+  }
+
   const { users } = data;
   const itemsPerPage = WIDGET_CONFIG.PAGINATION.ITEMS_PER_PAGE;
-  const totalPages = Math.ceil(users.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const totalPages = Math.max(1, Math.ceil(users.length / itemsPerPage));
+
+  // Validate and clamp current page
+  const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+  const startIndex = (validCurrentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentUsers = users.slice(startIndex, endIndex);
 
   const handlePrevPage = () => {
-    const newPage = Math.max(currentPage - 1, 1);
-    onPageChange(newPage);
+    if (validCurrentPage > 1) {
+      const newPage = validCurrentPage - 1;
+      onPageChange(newPage);
+    }
   };
 
   const handleNextPage = () => {
-    const newPage = Math.min(currentPage + 1, totalPages);
-    onPageChange(newPage);
+    if (validCurrentPage < totalPages) {
+      const newPage = validCurrentPage + 1;
+      onPageChange(newPage);
+    }
   };
+
+  // If users array is empty
+  if (users.length === 0) {
+    return (
+      <div className={cn("w-full text-center py-8", className)}>
+        <div className="text-gray-500">
+          <div className="text-2xl mb-2">👥</div>
+          <p className="text-sm">No hay usuarios registrados</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("w-full", className)}>
@@ -58,16 +90,16 @@ export const UserTableWidget: React.FC<UserTableWidgetProps> = ({
           <tbody>
             {currentUsers.map((user) => (
               <tr key={user.id} className="border-b border-gray-100">
-                <td className="p-2">{user.name}</td>
-                <td className="p-2 text-gray-600">{user.email}</td>
+                <td className="p-2">{user.name || "N/A"}</td>
+                <td className="p-2 text-gray-600">{user.email || "N/A"}</td>
                 <td className="p-2">
                   <span
                     className={cn(
                       "px-2 py-1 rounded-full text-xs",
-                      getUserTypeStyles(user.type)
+                      getUserTypeStyles(user.type || "Básico")
                     )}
                   >
-                    {user.type}
+                    {user.type || "Básico"}
                   </span>
                 </td>
               </tr>
@@ -76,38 +108,40 @@ export const UserTableWidget: React.FC<UserTableWidgetProps> = ({
         </table>
       </div>
 
-      <div className="flex items-center justify-between mt-4 px-2">
-        <div className="text-xs text-gray-500">
-          Mostrando {startIndex + 1}-{Math.min(endIndex, users.length)} de{" "}
-          {users.length} clientes
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 px-2">
+          <div className="text-xs text-gray-500">
+            Mostrando {startIndex + 1}-{Math.min(endIndex, users.length)} de{" "}
+            {users.length} clientes
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevPage}
+              disabled={validCurrentPage === 1}
+              className="h-7 w-7 p-0"
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+
+            <span className="text-xs text-gray-600 px-2">
+              {validCurrentPage} de {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={validCurrentPage === totalPages}
+              className="h-7 w-7 p-0"
+            >
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="h-7 w-7 p-0"
-          >
-            <ChevronLeft className="h-3 w-3" />
-          </Button>
-
-          <span className="text-xs text-gray-600 px-2">
-            {currentPage} de {totalPages}
-          </span>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="h-7 w-7 p-0"
-          >
-            <ChevronRight className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
